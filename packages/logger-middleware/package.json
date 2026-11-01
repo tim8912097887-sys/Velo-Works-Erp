@@ -1,0 +1,35 @@
+{
+  "name": "@app/logger-middleware",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.26.1",
+  "dependencies": {
+    "@nestjs/common": "catalog:",
+    "express": "catalog:",
+    "nestjs-pino": "catalog:",
+    "pino": "catalog:"
+  },
+  "devDependencies": {
+    "@types/express": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -7,5 +7,7 @@ catalog:
   "nestjs-pino": ^5.3.1
   "pino": ^10.4.0
   "typescript": ^7.0.2
+  "express": "^5.3.0"
+  "@types/express": "^5.0.6"
 # pnpm 10 configuration for portable deployment
 injectWorkspacePackages: true

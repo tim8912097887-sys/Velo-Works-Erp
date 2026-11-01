@@ -1,59 +1,72 @@
+import { DynamicModule, Module } from "@nestjs/common";
 import { LoggerModule } from "nestjs-pino";
-import type { DynamicModule } from "@nestjs/common";
-import { stdTimeFunctions } from "pino";
-
-import type { SharedLoggerOptions } from "./logger.options.js";
+import { SharedLoggerOptions } from "./logger.options.js";
 import { REDACT_PATHS } from "./logger.redact.js";
 
-export function createLoggerModule(
-  options: SharedLoggerOptions,
-): DynamicModule {
-  const { serviceName, level = "info", microservice = false } = options;
+const SAFE_REQUEST_ID_REGEX = /^[a-zA-Z0-9\-_/.]{8,128}$/;
 
-  if (!serviceName.trim()) {
-    throw new Error("Logger serviceName cannot be empty");
-  }
+@Module({})
+export class SharedLoggerModule {
+  static createLoggerModule(options: SharedLoggerOptions): DynamicModule {
+    const { serviceName, level = "info", microservice = false } = options;
 
-  return LoggerModule.forRoot({
-    pinoHttp: {
-      // Service identification
-      base: {
-        service: serviceName,
-      },
+    if (!serviceName.trim()) {
+      throw new Error("Logger serviceName cannot be empty");
+    }
 
-      // Log level
-      level,
+    return {
+      module: SharedLoggerModule,
+      imports: [
+        LoggerModule.forRoot({
+          pinoHttp: {
+            base: {
+              service: serviceName,
+            },
+            level,
+            // Automatically generate or extract request ID (X-Request-Id / Trace ID)
+            genReqId: (req, res) => {
+              const existingId =
+                req.headers["x-request-id"] || req.headers["x-correlation-id"];
 
-      // JSON output
-      formatters: {
-        level(label) {
-          return {
-            level: label,
-          };
-        },
-      },
+              const requestId = Array.isArray(existingId)
+                ? existingId[0]
+                : existingId || crypto.randomUUID();
 
-      // ISO 8601 timestamp
-      timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+              const validRequestId = SAFE_REQUEST_ID_REGEX.test(
+                requestId.trim(),
+              )
+                ? requestId.trim()
+                : crypto.randomUUID();
 
-      // Security
-      redact: {
-        paths: [...REDACT_PATHS],
-        censor: "[REDACTED]",
-      },
-
-      // Error serialization
-      serializers: {
-        err: (error) => ({
-          type: error.type,
-          message: error.message,
-          stack: error.stack,
-          code: error.code,
+              res.setHeader("X-Request-Id", validRequestId);
+              return validRequestId;
+            },
+            // Redact sensitive keys
+            redact: {
+              paths: [...REDACT_PATHS],
+              censor: "[REDACTED]",
+            },
+            formatters: {
+              level(label) {
+                return { level: label };
+              },
+            },
+            // Completed ISO 8601 timestamp
+            timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+            serializers: {
+              err: (error) => ({
+                type: error.type,
+                message: error.message,
+                stack: error.stack,
+                code: error.code,
+              }),
+            },
+          },
+          // Enable NestJS microservice message logging when needed
+          ...(microservice ? { microservice: true } : {}),
         }),
-      },
-    },
-
-    // Enable NestJS microservice message logging when needed
-    ...(microservice ? { microservice: true } : {}),
-  });
+      ],
+      exports: [LoggerModule],
+    };
+  }
 }
