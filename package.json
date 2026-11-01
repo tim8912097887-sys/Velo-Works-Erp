@@ -9,11 +9,21 @@
   },
   "main": "index.js",
   "scripts": {
-    "build:packages": "pnpm --filter \"@app/*\" -r run build",
-    "install:packages": "pnpm --filter \"@app/*\" -r install"
+    "packages:build": "pnpm --filter \"@app/*\" -r run build",
+    "packages:install": "pnpm --filter \"@app/*\" -r install",
+    "packages:lint": "pnpm --filter \"@app/*\" -r run lint",
+    "packages:lint:fix": "pnpm --filter \"@app/*\" -r run lint:fix"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.26.1"
+  "packageManager": "pnpm@10.26.1",
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@typescript-eslint/*": ">=4.8.4",
+        "typescript-eslint": ">=4.8.4"
+      }
+    }
+  }
 }

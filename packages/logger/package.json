@@ -16,6 +16,8 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint ./src",
+    "lint:fix": "eslint ./src --fix",
     "clean": "rm -rf dist"
   },
   "keywords": [],
@@ -28,6 +30,10 @@
     "pino": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@eslint/js": "catalog:",
+    "eslint": "catalog:",
+    "typescript-eslint": "catalog:",
+    "prettier": "catalog:"
   }
 }

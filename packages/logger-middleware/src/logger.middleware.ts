@@ -3,12 +3,10 @@ import { Request, Response, NextFunction } from "express";
 import { PinoLogger } from "nestjs-pino";
 
 // Extend Express Request type to include custom performance/trace properties
-declare global {
-  namespace Express {
-    interface Request {
-      startTime?: number;
-      requestId?: string;
-    }
+declare module 'express' {
+  interface Request {
+    startTime?: number;
+    requestId?: string;
   }
 }
 
