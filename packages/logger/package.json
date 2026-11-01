@@ -23,11 +23,11 @@
   "license": "ISC",
   "packageManager": "pnpm@10.26.1",
   "dependencies": {
-    "@nestjs/common": "^12.3.2",
-    "nestjs-pino": "^5.3.1",
-    "pino": "^10.4.0"
+    "@nestjs/common": "catalog:",
+    "nestjs-pino": "catalog:",
+    "pino": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "catalog:"
   }
 }

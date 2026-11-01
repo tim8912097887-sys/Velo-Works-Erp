@@ -1,6 +1,11 @@
 packages:
-  - "apps/*"
+  - "services/*"
   - "packages/*"
 
+catalog:
+  "@nestjs/common": ^12.3.2
+  "nestjs-pino": ^5.3.1
+  "pino": ^10.4.0
+  "typescript": ^7.0.2
 # pnpm 10 configuration for portable deployment
 injectWorkspacePackages: true

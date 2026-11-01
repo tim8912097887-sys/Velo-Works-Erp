@@ -9,7 +9,8 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:packages": "pnpm --filter \"@app/*\" -r run build",
+    "install:packages": "pnpm --filter \"@app/*\" -r install"
   },
   "keywords": [],
   "author": "",
