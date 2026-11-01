@@ -1,0 +1,6 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm 10 configuration for portable deployment
+injectWorkspacePackages: true
