@@ -16,7 +16,10 @@
     "services:install": "pnpm --filter \"./services/*\" -r install",
     "services:build": "pnpm --filter \"./services/*\" -r run build",
     "services:lint": "pnpm --filter \"./services/*\" -r run lint",
-    "services:lint:fix": "pnpm --filter \"./services/*\" -r run lint:fix"
+    "services:lint:fix": "pnpm --filter \"./services/*\" -r run lint:fix",
+    "engineer-service:db:generate": "pnpm --filter \"./services/engineer-service\" run prisma:generate",
+    "engineer-service:db:migrate": "pnpm --filter \"./services/engineer-service\" run prisma:migrate",
+    "engineer-service:db:deploy": "pnpm --filter \"./services/engineer-service\" run prisma:deploy"
   },
   "keywords": [],
   "author": "",

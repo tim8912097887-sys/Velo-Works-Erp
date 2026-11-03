@@ -31,6 +31,9 @@ RUN pnpm --filter=engineer-service... build
 # This eliminates workspace symlinks and flattens everything into /prod/engineer-service
 RUN pnpm --filter=engineer-service deploy --legacy /prod/engineer-service
 
+FROM build AS migrate
+CMD ["pnpm", "engineer-service:db:deploy"]
+
 # Final stage
 FROM node:${NODE_VERSION}-alpine
 WORKDIR /app
@@ -41,4 +44,4 @@ USER node
 COPY --from=build --chown=node:node /prod/engineer-service /app/
 
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

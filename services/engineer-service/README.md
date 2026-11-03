@@ -31,6 +31,26 @@
 $ pnpm install
 ```
 
+## Database migrations
+
+The Prisma schema is in `prisma/schema.prisma`. To run the SQL Server database and
+apply pending migrations with Docker Compose:
+
+1. Copy the root `.env.example` to `.env` and set a unique alphanumeric
+   `MSSQL_SA_PASSWORD` with uppercase letters, lowercase letters, and digits.
+2. Run `docker compose up --build`.
+
+Compose starts SQL Server, creates the `engineer` database, applies migrations
+using the one-shot `engineer-migrate` container, and then starts the service.
+To apply migrations without starting the service, run
+`docker compose run --build --rm engineer-migrate`.
+
+Generate a migration after changing the Prisma schema with:
+
+```bash
+pnpm --filter engineer-service exec prisma migrate dev --name <name>
+```
+
 ## Compile and run the project
 
 ```bash
