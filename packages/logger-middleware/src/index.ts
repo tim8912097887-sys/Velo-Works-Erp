@@ -1,1 +1,1 @@
-export { RequestContextMiddleware } from "./logger.middleware.js";
+export { SlowRequestMiddleware } from "./logger.middleware.js";

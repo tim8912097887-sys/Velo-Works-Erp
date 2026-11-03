@@ -24,11 +24,9 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.26.1",
-  "dependencies": {
+  "peerDependencies": {
     "@nestjs/common": "catalog:",
-    "express": "catalog:",
-    "nestjs-pino": "catalog:",
-    "pino": "catalog:"
+    "nestjs-pino": "catalog:"
   },
   "devDependencies": {
     "@types/express": "catalog:",

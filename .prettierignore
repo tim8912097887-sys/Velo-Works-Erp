@@ -1,0 +1,6 @@
+.dockerignore
+**/.dockerignore
+.gitignore
+**/.gitignore
+.prettierignore
+**/.prettierignore

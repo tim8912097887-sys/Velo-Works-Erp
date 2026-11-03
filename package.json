@@ -12,18 +12,14 @@
     "packages:build": "pnpm --filter \"@app/*\" -r run build",
     "packages:install": "pnpm --filter \"@app/*\" -r install",
     "packages:lint": "pnpm --filter \"@app/*\" -r run lint",
-    "packages:lint:fix": "pnpm --filter \"@app/*\" -r run lint:fix"
+    "packages:lint:fix": "pnpm --filter \"@app/*\" -r run lint:fix",
+    "services:install": "pnpm --filter \"./services/*\" -r install",
+    "services:build": "pnpm --filter \"./services/*\" -r run build",
+    "services:lint": "pnpm --filter \"./services/*\" -r run lint",
+    "services:lint:fix": "pnpm --filter \"./services/*\" -r run lint:fix"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.26.1",
-  "pnpm": {
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "@typescript-eslint/*": ">=4.8.4",
-        "typescript-eslint": ">=4.8.4"
-      }
-    }
-  }
+  "packageManager": "pnpm@10.26.1"
 }
