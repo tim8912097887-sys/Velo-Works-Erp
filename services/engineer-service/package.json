@@ -21,7 +21,8 @@
     "lint:fix": "eslint ./src --fix",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:deploy": "prisma migrate deploy",
+    "test:api": "newman run postman/item-service.json"
   },
   "dependencies": {
     "@nestjs/common": "catalog:",
@@ -36,7 +37,9 @@
     "@app/response": "workspace:*",
     "@prisma/client": "catalog:",
     "@prisma/adapter-mssql": "catalog:",
-    "@prisma/client-runtime-utils": "catalog:"
+    "@prisma/client-runtime-utils": "catalog:",
+    "zod": "catalog:",
+    "@nestjs/config": "catalog:"
   },
   "devDependencies": {
     "@eslint/eslintrc": "catalog:",
@@ -61,6 +64,6 @@
     "typescript-eslint": "catalog:",
     "prisma": "catalog:",
     "@types/mssql": "catalog:",
-    "dotenv": "catalog:"
+    "newman": "catalog:"
   }
 }

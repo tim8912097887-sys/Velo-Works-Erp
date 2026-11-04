@@ -19,7 +19,8 @@
     "services:lint:fix": "pnpm --filter \"./services/*\" -r run lint:fix",
     "engineer-service:db:generate": "pnpm --filter \"./services/engineer-service\" run prisma:generate",
     "engineer-service:db:migrate": "pnpm --filter \"./services/engineer-service\" run prisma:migrate",
-    "engineer-service:db:deploy": "pnpm --filter \"./services/engineer-service\" run prisma:deploy"
+    "engineer-service:db:deploy": "pnpm --filter \"./services/engineer-service\" run prisma:deploy",
+    "engineer-service:test:api": "pnpm --filter \"./services/engineer-service\" run test:api"
   },
   "keywords": [],
   "author": "",

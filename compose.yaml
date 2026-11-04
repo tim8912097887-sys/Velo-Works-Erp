@@ -4,11 +4,11 @@ services:
     volumes:
       - engineer-mssql-data:/var/opt/mssql
     environment:
-      ACCEPT_EULA: "Y"
+      ACCEPT_EULA: 'Y'
       MSSQL_PID: Developer
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in the root .env file}
     ports:
-      - "1433:1433"
+      - '1433:1433'
     healthcheck:
       test:
         - CMD-SHELL
@@ -20,7 +20,7 @@ services:
 
   mssql-init:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: ['/bin/bash', '-c']
     command:
       - /opt/mssql-tools18/bin/sqlcmd -S mssql -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "IF DB_ID(N'engineer') IS NULL CREATE DATABASE [engineer]"
     environment:
@@ -34,8 +34,8 @@ services:
       context: .
       dockerfile: ./services/engineer-service/Dockerfile
       target: migrate
-    environment:
-      DATABASE_URL: "sqlserver://mssql:1433;database=engineer;user=sa;password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in the root .env file};encrypt=true;trustServerCertificate=true"
+    env_file:
+      - ./services/engineer-service/.env
     depends_on:
       mssql-init:
         condition: service_completed_successfully
@@ -46,10 +46,9 @@ services:
       dockerfile: ./services/engineer-service/Dockerfile
     container_name: engineer-service
     ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: "sqlserver://mssql:1433;database=engineer;user=sa;password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in the root .env file};encrypt=true;trustServerCertificate=true"
+      - '3000:3000'
+    env_file:
+      - ./services/engineer-service/.env
     depends_on:
       engineer-migrate:
         condition: service_completed_successfully

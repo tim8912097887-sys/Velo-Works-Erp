@@ -6,9 +6,7 @@ import { PrismaClient } from '../../generated/prisma/client.js';
 @Injectable()
 export class DbService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(configService: ConfigService) {
-    const adapter = new PrismaMssql({
-      url: configService.getOrThrow<string>('DATABASE_URL'),
-    });
+    const adapter = new PrismaMssql(configService.getOrThrow<string>('DATABASE_URL'));
     super({ adapter });
   }
 
