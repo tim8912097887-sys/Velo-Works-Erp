@@ -20,10 +20,15 @@
     "engineer-service:db:generate": "pnpm --filter \"./services/engineer-service\" run prisma:generate",
     "engineer-service:db:migrate": "pnpm --filter \"./services/engineer-service\" run prisma:migrate",
     "engineer-service:db:deploy": "pnpm --filter \"./services/engineer-service\" run prisma:deploy",
-    "engineer-service:test:api": "pnpm --filter \"./services/engineer-service\" run test:api"
+    "engineer-service:test:api": "pnpm --filter \"./services/engineer-service\" run test:api",
+    "engineer-service:test": "pnpm --filter \"./services/engineer-service\" run test",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.26.1"
+  "packageManager": "pnpm@10.26.1",
+  "dependencies": {
+    "husky": "catalog:"
+  }
 }

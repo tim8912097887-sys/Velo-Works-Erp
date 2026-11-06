@@ -6,7 +6,7 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import { Logger } from 'nestjs-pino';
+import { PinoLogger } from 'nestjs-pino';
 import { Request, Response } from 'express';
 import { errorResponse, ErrorObject } from '@app/response';
 import { ApiError, DomainError, mapDomainErrorToApiError } from '../errors/index.js';
@@ -14,7 +14,7 @@ import { ApiError, DomainError, mapDomainErrorToApiError } from '../errors/index
 @Catch()
 @Injectable()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: Logger) {}
+  constructor(private readonly logger: PinoLogger) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();

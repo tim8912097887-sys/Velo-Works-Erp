@@ -25,9 +25,18 @@ export class ItemsRepository {
     const where: Prisma.ItemWhereInput = {};
 
     if (query.search) {
-      where.name = {
-        contains: query.search,
-      };
+      where.OR = [
+        {
+          name: {
+            contains: query.search,
+          },
+        },
+        {
+          itemCode: {
+            contains: query.search,
+          },
+        },
+      ];
     }
 
     if (query.itemType) {

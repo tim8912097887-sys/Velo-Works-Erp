@@ -26,7 +26,8 @@
   "packageManager": "pnpm@10.26.1",
   "peerDependencies": {
     "@nestjs/common": "catalog:",
-    "nestjs-pino": "catalog:"
+    "nestjs-pino": "catalog:",
+    "pino": "catalog:"
   },
   "devDependencies": {
     "@types/express": "catalog:",

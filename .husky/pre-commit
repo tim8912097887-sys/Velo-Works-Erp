@@ -1,0 +1,2 @@
+pnpm packages:lint
+pnpm services:lint
