@@ -1,0 +1,21 @@
+name: Engineer Service CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feat/engineer-service
+  push:
+    branches:
+      - feat/engineer-service
+    paths:
+      - 'service/engineer-service/**'
+      - '.github/workflows/engineer-service-build-and-lint.yaml'
+      - '.github/workflows/reusable-service-check.yaml'
+
+jobs:
+  call-server-workflow:
+    uses: ./.github/workflows/reusable-service-check.yaml
+    with:
+      service-name: 'engineer-service'
+      service-path: 'services/engineer-service'

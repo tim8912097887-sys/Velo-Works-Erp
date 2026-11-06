@@ -1,0 +1,89 @@
+name: Reusable Service Build and Lint
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: 'Name of the service (e.g., server, client)'
+        required: true
+        type: string
+      service-path:
+        description: 'Directory path of the service (e.g., server)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.service-name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref != 'refs/heads/main' }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.filter.outputs.service }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Check for file changes
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            service:
+              - '${{ inputs.service-path }}/**'
+              - '.github/workflows/${{ inputs.service-name }}-build-and-lint.yaml'
+              - '.github/workflows/reusable-service-check.yaml'
+
+  build-and-lint:
+    needs: changes
+    if: ${{ needs.changes.outputs.should_run == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./${{ inputs.service-path }}
+    strategy:
+      matrix:
+        node-version: [22, 24]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Initialize Environment
+        uses: ./.github/actions/setup-node-and-dependency
+        with:
+          node-version: ${{ matrix.node-version }}
+          pnpm-version: 10.26.1
+          working-directory: ./${{ inputs.service-path }}
+
+      - name: Run Build
+        run: pnpm run build
+
+      - name: Run Lint
+        run: pnpm run lint
+
+  status-check:
+    needs: [changes, build-and-lint]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate Status
+        run: |
+          CHANGE_RESULT="${{ needs.changes.result }}"
+          BUILD_RESULT="${{ needs.build-and-lint.result }}"
+
+          if [ "$CHANGE_RESULT" != "success" ]; then
+            echo "Change detection failed for ${{ inputs.service-name }}!"
+            exit 1
+          fi
+
+          if [ "$BUILD_RESULT" = "success" ] || [ "$BUILD_RESULT" = "skipped" ]; then
+            echo "${{ inputs.service-name }} checks passed or were safely skipped."
+            exit 0
+          else
+            echo "${{ inputs.service-name }} build/lint failed!"
+            exit 1
+          fi
