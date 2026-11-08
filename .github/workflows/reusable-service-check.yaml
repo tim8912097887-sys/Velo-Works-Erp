@@ -42,6 +42,8 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlserver://localhost:1433;database=engineer;user=sa;password=password;encrypt=true;trustServerCertificate=true
     strategy:
       matrix:
         node-version: [22, 24]
