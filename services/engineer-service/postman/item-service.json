@@ -17,6 +17,11 @@
       "type": "string"
     },
     {
+      "key": "seedItemVersion",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "secondItemId",
       "value": "",
       "type": "string"
@@ -76,11 +81,13 @@
               "  pm.expect(data.itemCode).to.eql('TEST-BIKE-FG-001');",
               "  pm.expect(data.name).to.eql('Newman Test Mountain Bike');",
               "  pm.expect(data.itemType).to.eql('FINISHED_GOOD');",
+              "  pm.expect(data.active).to.eql(true);",
               "  pm.expect(data.makeBuy).to.eql('MAKE');",
               "  pm.expect(data.unitOfMeasure).to.eql('EA');",
               "  pm.expect(data.leadTimeDays).to.be.a('number');",
               "  pm.expect(data.safetyStock).to.be.a('number');",
               "  pm.collectionVariables.set('seedItemId', data.id);",
+              "  pm.collectionVariables.set('seedItemVersion', data.version);",
               "});"
             ]
           }
@@ -1436,6 +1443,7 @@
               "    pm.expect(d.itemCode).to.be.a('string');",
               "    pm.expect(d.name).to.be.a('string');",
               "    pm.expect(d.itemType).to.be.a('string');",
+              "    pm.expect(d.active).to.be.a('boolean');",
               "    pm.expect(d.makeBuy).to.be.a('string');",
               "    pm.expect(d.unitOfMeasure).to.be.a('string');",
               "    pm.expect(d.leadTimeDays).to.be.a('number');",
@@ -1953,7 +1961,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Newman Test Mountain Bike Updated\",\n  \"leadTimeDays\": 7,\n  \"safetyStock\": 12.5\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"name\": \"Newman Test Mountain Bike Updated\",\n  \"leadTimeDays\": 7,\n  \"safetyStock\": 12.5\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -1991,6 +1999,7 @@
               "  pm.expect(d.itemType).to.eql('FINISHED_GOOD');",
               "  pm.expect(d.makeBuy).to.eql('MAKE');",
               "  pm.expect(d.unitOfMeasure).to.eql('EA');",
+              "  pm.collectionVariables.set('seedItemVersion', d.version);",
               "});"
             ]
           }
@@ -2015,7 +2024,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{}",
+          "raw": "{\n  \"version\": {{seedItemVersion}}\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2047,6 +2056,7 @@
               "  const d = pm.response.json().data;",
               "  pm.expect(d.id).to.eql(pm.collectionVariables.get('seedItemId'));",
               "  pm.expect(d.name).to.eql('Newman Test Mountain Bike Updated');",
+              "  pm.collectionVariables.set('seedItemVersion', d.version);",
               "});"
             ]
           }
@@ -2071,7 +2081,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \" \"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"name\": \" \"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2123,7 +2133,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"name\": \"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2158,7 +2168,7 @@
       ]
     },
     {
-      "name": "51 - Update validation - blank unitOfMeasure",
+      "name": "51 - Update validation - unitOfMeasure is unsupported",
       "request": {
         "method": "PATCH",
         "header": [
@@ -2175,7 +2185,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"unitOfMeasure\": \" \"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"unitOfMeasure\": \"BOX\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2210,7 +2220,7 @@
       ]
     },
     {
-      "name": "52 - Update validation - unitOfMeasure exceeds 20 chars",
+      "name": "52 - Update validation - unitOfMeasure and active are unsupported",
       "request": {
         "method": "PATCH",
         "header": [
@@ -2227,7 +2237,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"unitOfMeasure\": \"UUUUUUUUUUUUUUUUUUUUU\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"unitOfMeasure\": \"EA\",\n  \"active\": true\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2279,7 +2289,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"leadTimeDays\": 0\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"leadTimeDays\": 0\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2331,7 +2341,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"leadTimeDays\": 2.2\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"leadTimeDays\": 2.2\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2383,7 +2393,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"leadTimeDays\": \"4\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"leadTimeDays\": \"4\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2435,7 +2445,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"safetyStock\": -1\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"safetyStock\": -1\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2487,7 +2497,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"safetyStock\": \"4\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"safetyStock\": \"4\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2539,7 +2549,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"makeBuy\": \"OUTSOURCE\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"makeBuy\": \"OUTSOURCE\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2591,7 +2601,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"itemCode\": \"CHANGED-CODE\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"itemCode\": \"CHANGED-CODE\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2643,7 +2653,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"itemType\": \"RAW_MATERIAL\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"itemType\": \"RAW_MATERIAL\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2695,7 +2705,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"active\": false\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"active\": false\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2747,7 +2757,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Should Not Exist\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"name\": \"Should Not Exist\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2799,7 +2809,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Invalid Route\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"name\": \"Invalid Route\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2851,7 +2861,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"makeBuy\": \"BOTH\"\n}",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"makeBuy\": \"BOTH\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -2880,7 +2890,272 @@
               "});",
               "",
               "pm.test(\"makeBuy can be updated to another valid enum value\", function () {",
-              "  pm.expect(pm.response.json().data.makeBuy).to.eql('BOTH');",
+              "  const d = pm.response.json().data;",
+              "  pm.expect(d.makeBuy).to.eql('BOTH');",
+              "  pm.collectionVariables.set('seedItemVersion', d.version);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "65 - Inactivate - success",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/{{seedItemId}}/inactivate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "{{seedItemId}}", "inactivate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Inactivation succeeds and returns active false\", function () {",
+              "  pm.response.to.have.status(200);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.state).to.eql('success');",
+              "  pm.expect(json.data.id).to.eql(pm.collectionVariables.get('seedItemId'));",
+              "  pm.expect(json.data.active).to.eql(false);",
+              "  pm.collectionVariables.set('seedItemVersion', json.data.version);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "66 - Inactivate - reject already inactive item",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/{{seedItemId}}/inactivate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "{{seedItemId}}", "inactivate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repeated inactivation returns conflict\", function () {",
+              "  pm.response.to.have.status(409);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.state).to.eql('error');",
+              "  pm.expect(json.error.code).to.eql('ITEM_ALREADY_INACTIVATED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "67 - Update - reject inactive item",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/{{seedItemId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "{{seedItemId}}"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"version\": {{seedItemVersion}},\n  \"name\": \"Should not update while inactive\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Updating an inactive item returns conflict\", function () {",
+              "  pm.response.to.have.status(409);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.state).to.eql('error');",
+              "  pm.expect(json.error.code).to.eql('ITEM_NOT_ACTIVE');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "68 - Activate - success",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/{{seedItemId}}/activate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "{{seedItemId}}", "activate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Activation succeeds and returns active true\", function () {",
+              "  pm.response.to.have.status(200);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.state).to.eql('success');",
+              "  pm.expect(json.data.id).to.eql(pm.collectionVariables.get('seedItemId'));",
+              "  pm.expect(json.data.active).to.eql(true);",
+              "  pm.collectionVariables.set('seedItemVersion', json.data.version);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "69 - Activate - reject already active item",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/{{seedItemId}}/activate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "{{seedItemId}}", "activate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repeated activation returns conflict\", function () {",
+              "  pm.response.to.have.status(409);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.state).to.eql('error');",
+              "  pm.expect(json.error.code).to.eql('ITEM_ALREADY_ACTIVATED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "70 - Activate - reject missing item",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/00000000-0000-4000-8000-000000000000/activate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "00000000-0000-4000-8000-000000000000", "activate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Missing item returns not found\", function () {",
+              "  pm.response.to.have.status(404);",
+              "  pm.expect(pm.response.json().error.code).to.eql('ITEM_NOT_FOUND');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "71 - Activate - reject malformed item id",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/not-a-uuid/activate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "not-a-uuid", "activate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Malformed item id returns validation error\", function () {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "72 - Inactivate - reject missing item",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/00000000-0000-4000-8000-000000000000/inactivate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "00000000-0000-4000-8000-000000000000", "inactivate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Missing item returns not found\", function () {",
+              "  pm.response.to.have.status(404);",
+              "  pm.expect(pm.response.json().error.code).to.eql('ITEM_NOT_FOUND');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "73 - Inactivate - reject malformed item id",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/items/not-a-uuid/inactivate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "items", "not-a-uuid", "inactivate"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Malformed item id returns validation error\", function () {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().error.code).to.eql('VALIDATION_ERROR');",
               "});"
             ]
           }

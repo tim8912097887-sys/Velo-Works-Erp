@@ -31,14 +31,18 @@ describe('Get Item Integration Test', () => {
   });
 
   describe('Business Logic test', () => {
-    it('when an item does not exist should return null data', async () => {
+    it('when an item does not exist should return a not found error', async () => {
       const response = await request(getApp().getHttpServer()).get(
         `${GET_ALL_ITEMS_URL}/00000000-0000-4000-8000-000000000000`,
       );
 
-      expect(response.status).toBe(200);
-      expect(response.body.state).toBe('success');
+      expect(response.status).toBe(404);
+      expect(response.body.state).toBe('error');
       expect(response.body.data).toBeNull();
+      expect(response.body.error).toEqual({
+        code: 'ITEM_NOT_FOUND',
+        message: 'Item with ID 00000000-0000-4000-8000-000000000000 not found',
+      });
     });
   });
 

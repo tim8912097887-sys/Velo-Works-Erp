@@ -49,6 +49,18 @@ export class ItemsController {
     return this.successResponse(data);
   }
 
+  @Patch(':id/activate')
+  async activate(@Param(new ZodValidationPipe(ItemParamSchema)) params: ItemParamDto) {
+    const data = await this.itemsService.activate(params.id);
+    return this.successResponse(data);
+  }
+
+  @Patch(':id/inactivate')
+  async inactivate(@Param(new ZodValidationPipe(ItemParamSchema)) params: ItemParamDto) {
+    const data = await this.itemsService.inactivate(params.id);
+    return this.successResponse(data);
+  }
+
   private successResponse(data: unknown, meta?: ResponseMeta) {
     return successResponse(data, meta);
   }

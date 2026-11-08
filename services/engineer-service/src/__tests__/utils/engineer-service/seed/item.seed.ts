@@ -65,6 +65,7 @@ export async function seedItems() {
       itemType,
       unitOfMeasure: units[index % units.length],
       makeBuy,
+      version: 1,
       leadTimeDays: (num % 20) + 1, // Generates lead times between 1 and 20 days (satisfies Zod >= 1)
       safetyStock: Number(((num * 2.25) % 150).toFixed(3)), // Satisfies Zod >= 0
       active: index !== 42 && index !== 47, // Make a couple inactive to test active filtering

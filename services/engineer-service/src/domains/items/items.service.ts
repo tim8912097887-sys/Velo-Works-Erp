@@ -3,7 +3,6 @@ import { ItemsRepository } from './items.repository.js';
 import { CreateItemDto } from './dto/create-item.dto.js';
 import { UpdateItemDto } from './dto/update-item.dto.js';
 import { GetItemsQueryDto } from './dto/get-all.dto.js';
-import { ItemAlreadyExistsError } from './errors/item-already-exist.error.js';
 import { ItemNotFoundError } from './errors/item-not-found.error.js';
 import { ReturnItemDto } from './dto/return-item.dto.js';
 
@@ -12,10 +11,6 @@ export class ItemsService {
   constructor(private readonly itemRepository: ItemsRepository) {}
 
   async create(createItemDto: CreateItemDto): Promise<ReturnItemDto> {
-    const existingItem = await this.itemRepository.findByItemCode(createItemDto.itemCode);
-    if (existingItem) {
-      throw new ItemAlreadyExistsError(createItemDto.itemCode);
-    }
     const item = await this.itemRepository.create(createItemDto);
     return ReturnItemDto.toDomainItem(item);
   }
@@ -25,20 +20,25 @@ export class ItemsService {
     return items.map((item) => ReturnItemDto.toDomainItem(item));
   }
 
-  async findOne(id: string): Promise<ReturnItemDto | null> {
-    const item = await this.itemRepository.findById(id);
-    return item ? ReturnItemDto.toDomainItem(item) : null;
-  }
-
-  async update(id: string, updateItemDto: UpdateItemDto): Promise<ReturnItemDto> {
+  async findOne(id: string): Promise<ReturnItemDto> {
     const item = await this.itemRepository.findById(id);
     if (!item) {
       throw new ItemNotFoundError(id);
     }
+
+    return ReturnItemDto.toDomainItem(item);
+  }
+
+  async update(id: string, updateItemDto: UpdateItemDto): Promise<ReturnItemDto> {
     const updatedItem = await this.itemRepository.update(id, updateItemDto);
-    if (!updatedItem) {
-      throw new ItemNotFoundError(id);
-    }
     return ReturnItemDto.toDomainItem(updatedItem);
+  }
+
+  async activate(id: string): Promise<ReturnItemDto> {
+    return ReturnItemDto.toDomainItem(await this.itemRepository.updateActiveState(id, true));
+  }
+
+  async inactivate(id: string): Promise<ReturnItemDto> {
+    return ReturnItemDto.toDomainItem(await this.itemRepository.updateActiveState(id, false));
   }
 }

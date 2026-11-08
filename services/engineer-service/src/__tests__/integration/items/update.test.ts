@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Item } from '../../../generated/prisma/client.js';
 import { ItemsService } from '../../../domains/items/items.service.js';
 import { getApp } from '../../setup.js';
@@ -15,7 +15,7 @@ import {
 describe('Update Item Integration Test', () => {
   let seededItems: Item[];
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     await resetDb();
     seededItems = (await seedItems()) as unknown as Item[];
   });
@@ -25,7 +25,7 @@ describe('Update Item Integration Test', () => {
       const item = seededItems[1];
       const response = await request(getApp().getHttpServer())
         .patch(`${GET_ALL_ITEMS_URL}/${item.id}`)
-        .send(body);
+        .send({ ...body, version: item.version });
 
       expect(response.status).toBe(200);
       expect(response.body.state).toBe('success');
@@ -39,7 +39,7 @@ describe('Update Item Integration Test', () => {
       const missingId = '00000000-0000-4000-8000-000000000000';
       const response = await request(getApp().getHttpServer())
         .patch(`${GET_ALL_ITEMS_URL}/${missingId}`)
-        .send({ name: 'Updated name' });
+        .send({ name: 'Updated name', version: 1 });
 
       expect(response.status).toBe(404);
       expect(response.body.state).toBe('error');
@@ -49,15 +49,56 @@ describe('Update Item Integration Test', () => {
         message: `Item with ID ${missingId} not found`,
       });
     });
+
+    it('when two requests update the same version concurrently should reject the stale update', async () => {
+      const item = seededItems[1];
+
+      const responses = await Promise.all([
+        request(getApp().getHttpServer())
+          .patch(`${GET_ALL_ITEMS_URL}/${item.id}`)
+          .send({ name: 'Concurrent update A', version: item.version }),
+        request(getApp().getHttpServer())
+          .patch(`${GET_ALL_ITEMS_URL}/${item.id}`)
+          .send({ name: 'Concurrent update B', version: item.version }),
+      ]);
+
+      expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+      expect(responses.find((response) => response.status === 409)?.body.error.code).toBe(
+        'ITEM_ALREADY_IN_USE',
+      );
+    });
+
+    it('when item is inactive should reject the update', async () => {
+      const inactiveItem = seededItems[42];
+      const response = await request(getApp().getHttpServer())
+        .patch(`${GET_ALL_ITEMS_URL}/${inactiveItem.id}`)
+        .send({ name: 'Updated inactive item', version: inactiveItem.version });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toEqual({
+        code: 'ITEM_NOT_ACTIVE',
+        message: `Item with ID ${inactiveItem.id} is inactive`,
+      });
+    });
   });
 
   describe('Validation Error test', () => {
     it.each(updateItemValidationTestCases)('$description', async ({ body, field }) => {
+      const item = seededItems[1];
       const response = await request(getApp().getHttpServer())
-        .patch(`${GET_ALL_ITEMS_URL}/${seededItems[1].id}`)
-        .send(body);
+        .patch(`${GET_ALL_ITEMS_URL}/${item.id}`)
+        .send({ version: item.version, ...body });
 
       assertValidationError(response, field);
+    });
+
+    it('when version is missing should return a validation error', async () => {
+      const item = seededItems[1];
+      const response = await request(getApp().getHttpServer())
+        .patch(`${GET_ALL_ITEMS_URL}/${item.id}`)
+        .send({ name: 'Updated name' });
+
+      assertValidationError(response, 'version');
     });
 
     it.each(['not-a-uuid', '123'])(
@@ -65,7 +106,7 @@ describe('Update Item Integration Test', () => {
       async (id) => {
         const response = await request(getApp().getHttpServer())
           .patch(`${GET_ALL_ITEMS_URL}/${id}`)
-          .send({ name: 'Updated name' });
+          .send({ name: 'Updated name', version: 1 });
 
         assertValidationError(response, 'id');
       },
@@ -80,7 +121,7 @@ describe('Update Item Integration Test', () => {
 
       const response = await request(getApp().getHttpServer())
         .patch(`${GET_ALL_ITEMS_URL}/${seededItems[1].id}`)
-        .send({ name: 'Updated name' });
+        .send({ name: 'Updated name', version: 1 });
 
       assertServerError(response);
     });

@@ -84,6 +84,16 @@ describe('Get All Items Integration Test', () => {
         );
       }
     });
+
+    it('includes the active state for every returned item', async () => {
+      const response = await request(getApp().getHttpServer()).get(GET_ALL_ITEMS_URL);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.length).toBeGreaterThan(0);
+      expect(
+        response.body.data.every((item: ReturnItemDto) => typeof item.active === 'boolean'),
+      ).toBe(true);
+    });
   });
 
   describe('Server Error test', () => {
