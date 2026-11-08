@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.js';
 import { GlobalExceptionFilter } from './shared/filters/error-handler.filter.js';
 import { APP_FILTER } from '@nestjs/core';
+import { BomsModule } from './domains/boms/boms.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { APP_FILTER } from '@nestjs/core';
       level: 'info',
     }),
     ItemsModule,
+    BomsModule,
   ],
   controllers: [AppController],
   providers: [
