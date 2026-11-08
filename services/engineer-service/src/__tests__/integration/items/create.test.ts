@@ -61,6 +61,28 @@ describe('Create Item Integration Test', () => {
         message: `Item with code ${seededItems[0].itemCode} already exists`,
       });
     });
+
+    it('when two requests create the same itemCode concurrently should create only one item', async () => {
+      const body = {
+        itemCode: 'CONCURRENT-ITEM-CREATE',
+        name: 'Concurrent item create',
+        itemType: 'SUBASSEMBLY',
+        unitOfMeasure: 'PCS',
+        makeBuy: 'MAKE',
+        leadTimeDays: 5,
+        safetyStock: 0,
+      };
+
+      const responses = await Promise.all([
+        request(getApp().getHttpServer()).post(GET_ALL_ITEMS_URL).send(body),
+        request(getApp().getHttpServer()).post(GET_ALL_ITEMS_URL).send(body),
+      ]);
+
+      expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+      expect(responses.find((response) => response.status === 409)?.body.error.code).toBe(
+        'ITEM_ALREADY_EXISTS',
+      );
+    });
   });
 
   describe('Validation Error test', () => {

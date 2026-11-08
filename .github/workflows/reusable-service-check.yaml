@@ -42,9 +42,8 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./${{ inputs.service-path }}
+    env:
+      DATABASE_URL: sqlserver://localhost:1433;database=engineer;user=sa;password=password;encrypt=true;trustServerCertificate=true
     strategy:
       matrix:
         node-version: [22, 24]
@@ -57,13 +56,17 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           pnpm-version: 10.26.1
-          working-directory: ./${{ inputs.service-path }}
+
+      - name: Build Packages
+        run: pnpm packages:build
+      - name: Generate Prisma Client
+        run: pnpm run ${{ inputs.service-name }}:db:generate
 
       - name: Run Build
-        run: pnpm run build
+        run: pnpm run ${{ inputs.service-name }}:build
 
       - name: Run Lint
-        run: pnpm run lint
+        run: pnpm run ${{ inputs.service-name }}:lint
 
   status-check:
     needs: [changes, build-and-lint]
