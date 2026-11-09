@@ -6,8 +6,8 @@ import { ItemsService } from '../../../domains/items/items.service.js';
 import { getApp } from '../../setup.js';
 import { assertServerError, assertValidationError } from '../../utils/common/assertion.js';
 import { resetDb } from '../../utils/common/db-reset.js';
-import { seedItems } from '../../utils/engineer-service/seed/item.seed.js';
-import { GET_ALL_ITEMS_URL } from '../../utils/engineer-service/seed/constants.js';
+import { seedItems } from '../../utils/item-service/seed/item.seed.js';
+import { GET_ITEM_URL } from '../../utils/item-service/seed/constants.js';
 
 describe('Get Item Integration Test', () => {
   let seededItems: Item[];
@@ -20,20 +20,19 @@ describe('Get Item Integration Test', () => {
   describe('Success test', () => {
     it('when an item exists should return the matching item', async () => {
       const item = seededItems[0];
-      const response = await request(getApp().getHttpServer()).get(`${GET_ALL_ITEMS_URL}/${item.id}`);
+      const response = await request(getApp().getHttpServer()).get(GET_ITEM_URL(item.id));
 
       expect(response.status).toBe(200);
       expect(response.body.state).toBe('success');
       expect(response.body.error).toBeNull();
       expect(response.body.data).toEqual(ReturnItemDto.toDomainItem(item));
     });
-
   });
 
   describe('Business Logic test', () => {
     it('when an item does not exist should return a not found error', async () => {
       const response = await request(getApp().getHttpServer()).get(
-        `${GET_ALL_ITEMS_URL}/00000000-0000-4000-8000-000000000000`,
+        GET_ITEM_URL('00000000-0000-4000-8000-000000000000'),
       );
 
       expect(response.status).toBe(404);
@@ -50,7 +49,7 @@ describe('Get Item Integration Test', () => {
     it.each(['not-a-uuid', '123'])(
       'when item id %s is not a valid UUID should return a validation error',
       async (id) => {
-        const response = await request(getApp().getHttpServer()).get(`${GET_ALL_ITEMS_URL}/${id}`);
+        const response = await request(getApp().getHttpServer()).get(GET_ITEM_URL(id));
 
         assertValidationError(response, 'id');
       },
@@ -63,9 +62,7 @@ describe('Get Item Integration Test', () => {
         new Error('Unexpected database failure'),
       );
 
-      const response = await request(getApp().getHttpServer()).get(
-        `${GET_ALL_ITEMS_URL}/${seededItems[0].id}`,
-      );
+      const response = await request(getApp().getHttpServer()).get(GET_ITEM_URL(seededItems[0].id));
 
       assertServerError(response);
     });

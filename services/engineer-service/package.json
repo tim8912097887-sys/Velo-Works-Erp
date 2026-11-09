@@ -25,7 +25,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:api": "newman run postman/item-service.json"
+    "test:api": "newman run postman/bom-service.json"
   },
   "dependencies": {
     "@nestjs/common": "catalog:",

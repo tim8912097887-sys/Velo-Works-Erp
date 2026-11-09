@@ -3,6 +3,7 @@ import { componentsSchema, effectiveDateSchema } from './bom-common.schema.js';
 
 export const updateBomBodySchema = z
   .strictObject({
+    version: z.number().int().min(1, 'version at least 1'),
     ...effectiveDateSchema.shape,
     components: componentsSchema,
   })

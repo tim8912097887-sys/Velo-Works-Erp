@@ -5,5 +5,9 @@ export const resetDb = async () => {
   const app = getApp();
   const dbService = app.get(DbService);
 
-  await dbService.$transaction([dbService.item.deleteMany()]);
+  await dbService.$transaction([
+    dbService.bomComponent.deleteMany(),
+    dbService.bomHeader.deleteMany(),
+    dbService.item.deleteMany(),
+  ]);
 };

@@ -1,0 +1,286 @@
+{
+  "info": {
+    "_postman_id": "e81e0584-0f75-4de5-81e6-94c91aa1e8c1",
+    "name": "Bicycle MRP - BOM API Tests",
+    "description": "Sequential Newman-ready BOM endpoint error and validation coverage. Creates disposable item/BOM data as needed. Pagination business logic is intentionally not tested.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "runId", "value": "" },
+    { "key": "parentId", "value": "" },
+    { "key": "componentId", "value": "" },
+    { "key": "inactiveComponentId", "value": "" },
+    { "key": "finishedGoodComponentId", "value": "" },
+    { "key": "inactiveParentId", "value": "" },
+    { "key": "rawMaterialParentId", "value": "" },
+    { "key": "bomId", "value": "" },
+    { "key": "missingItemId", "value": "11111111-1111-4111-8111-111111111111" },
+    { "key": "missingBomId", "value": "22222222-2222-4222-8222-222222222222" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": ["pm.variables.set('expectedStatus', 201);", "pm.variables.unset('expectedError');"]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('HTTP status matches expectation', function () { pm.response.to.have.status(Number(pm.variables.get('expectedStatus'))); });",
+          "const expectedError = pm.variables.get('expectedError');",
+          "if (expectedError) pm.test('Expected error code is returned', function () { const json = pm.response.json(); pm.expect(json.state).to.eql('error'); pm.expect(json.error.code).to.eql(expectedError); });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup - Create BOM parent",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('runId', Date.now().toString());"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('parentId', pm.response.json().data.id);"] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/v1/items",
+        "body": { "mode": "raw", "raw": "{\"itemCode\":\"BOM-P-{{runId}}\",\"name\":\"BOM test parent\",\"itemType\":\"FINISHED_GOOD\",\"unitOfMeasure\":\"EA\",\"makeBuy\":\"MAKE\",\"leadTimeDays\":1,\"safetyStock\":0}" }
+      }
+    },
+    {
+      "name": "01 - Setup - Create valid component",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('componentId', pm.response.json().data.id);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/v1/items",
+        "body": { "mode": "raw", "raw": "{\"itemCode\":\"BOM-C-{{runId}}\",\"name\":\"BOM test component\",\"itemType\":\"RAW_MATERIAL\",\"unitOfMeasure\":\"EA\",\"makeBuy\":\"BUY\",\"leadTimeDays\":1,\"safetyStock\":0}" }
+      }
+    },
+    {
+      "name": "02 - Setup - Create inactive component",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('inactiveComponentId', pm.response.json().data.id);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/v1/items",
+        "body": { "mode": "raw", "raw": "{\"itemCode\":\"BOM-IC-{{runId}}\",\"name\":\"Inactive BOM component\",\"itemType\":\"RAW_MATERIAL\",\"unitOfMeasure\":\"EA\",\"makeBuy\":\"BUY\",\"leadTimeDays\":1,\"safetyStock\":0}" }
+      }
+    },
+    {
+      "name": "03 - Setup - Inactivate component",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 200);"] } }],
+      "request": { "method": "PATCH", "url": "{{baseUrl}}/api/v1/items/{{inactiveComponentId}}/inactivate" }
+    },
+    {
+      "name": "04 - Setup - Create finished-good component",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('finishedGoodComponentId', pm.response.json().data.id);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/v1/items",
+        "body": { "mode": "raw", "raw": "{\"itemCode\":\"BOM-FG-{{runId}}\",\"name\":\"Finished-good BOM component\",\"itemType\":\"FINISHED_GOOD\",\"unitOfMeasure\":\"EA\",\"makeBuy\":\"MAKE\",\"leadTimeDays\":1,\"safetyStock\":0}" }
+      }
+    },
+    {
+      "name": "05 - Setup - Create inactive BOM parent",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('inactiveParentId', pm.response.json().data.id);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/v1/items",
+        "body": { "mode": "raw", "raw": "{\"itemCode\":\"BOM-IP-{{runId}}\",\"name\":\"Inactive BOM parent\",\"itemType\":\"SUBASSEMBLY\",\"unitOfMeasure\":\"EA\",\"makeBuy\":\"MAKE\",\"leadTimeDays\":1,\"safetyStock\":0}" }
+      }
+    },
+    {
+      "name": "06 - Setup - Inactivate BOM parent",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 200);"] } }],
+      "request": { "method": "PATCH", "url": "{{baseUrl}}/api/v1/items/{{inactiveParentId}}/inactivate" }
+    },
+    {
+      "name": "07 - Setup - Create raw-material parent",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('rawMaterialParentId', pm.response.json().data.id);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/v1/items",
+        "body": { "mode": "raw", "raw": "{\"itemCode\":\"BOM-RM-{{runId}}\",\"name\":\"Raw-material BOM parent\",\"itemType\":\"RAW_MATERIAL\",\"unitOfMeasure\":\"EA\",\"makeBuy\":\"BUY\",\"leadTimeDays\":1,\"safetyStock\":0}" }
+      }
+    },
+    {
+      "name": "10 - Create - invalid route parameter",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/not-a-uuid/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "11 - Create - invalid body",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"\",\"effectiveFrom\":\"invalid\",\"effectiveTo\":null,\"components\":[]}" } }
+    },
+    {
+      "name": "12 - Create - parent item not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'ITEM_NOT_FOUND');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{missingItemId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "13 - Create - parent item inactive",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 409);", "pm.variables.set('expectedError', 'ITEM_NOT_ACTIVE');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{inactiveParentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "14 - Create - invalid BOM parent type",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 409);", "pm.variables.set('expectedError', 'INVALID_BOM_HEADER');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{rawMaterialParentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "15 - Create - component not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'COMPONENT_ITEM_NOT_FOUND');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{missingItemId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "16 - Create - self reference",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'BOM_SELF_REFERENCE');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{parentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "17 - Create - inactive component",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'COMPONENT_ITEM_INACTIVE');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{inactiveComponentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "18 - Create - invalid component type",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'INVALID_BOM_COMPONENT_TYPE');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{finishedGoodComponentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "19 - Setup - Create draft BOM",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('bomId', pm.response.json().data.id);"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "20 - Create - duplicate revision",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 409);", "pm.variables.set('expectedError', 'BOM_REVISION_ALREADY_EXISTS');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R1\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "21 - Create - draft already exists",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 409);", "pm.variables.set('expectedError', 'BOM_DRAFT_ALREADY_EXISTS');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"revision\":\"R2\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "30 - Update - invalid route parameter",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/not-a-uuid", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "31 - Update - invalid body",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":0,\"effectiveFrom\":\"invalid\",\"effectiveTo\":null,\"components\":[]}" } }
+    },
+    {
+      "name": "32 - Update - item not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'ITEM_NOT_FOUND');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{missingItemId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "33 - Update - item inactive",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 409);", "pm.variables.set('expectedError', 'ITEM_NOT_ACTIVE');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{inactiveParentId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "34 - Update - invalid BOM parent type",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 409);", "pm.variables.set('expectedError', 'INVALID_BOM_HEADER');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{rawMaterialParentId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "35 - Update - BOM revision not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'BOM_REVISION_NOT_FOUND');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{missingBomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "36 - Update - component not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'COMPONENT_ITEM_NOT_FOUND');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{missingItemId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "37 - Update - self reference",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'BOM_SELF_REFERENCE');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{parentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "38 - Update - inactive component",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'COMPONENT_ITEM_INACTIVE');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{inactiveComponentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "39 - Update - invalid component type",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'INVALID_BOM_COMPONENT_TYPE');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":1,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{finishedGoodComponentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "40 - Update - stale version",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 409);", "pm.variables.set('expectedError', 'BOM_REVISION_ALREADY_IN_USE');"] } }],
+      "request": { "method": "PUT", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{bomId}}", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"version\":99,\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null,\"components\":[{\"componentItemId\":\"{{componentId}}\",\"quantityPer\":1}]}" } }
+    },
+    {
+      "name": "50 - List - invalid query parameter",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions?limit=0" }
+    },
+    {
+      "name": "51 - List - invalid route parameter",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/items/not-a-uuid/bom-revisions" }
+    },
+    {
+      "name": "52 - List - item not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'ITEM_NOT_FOUND');"] } }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/items/{{missingItemId}}/bom-revisions" }
+    },
+    {
+      "name": "60 - Get - invalid route parameter",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/not-a-uuid" }
+    },
+    {
+      "name": "61 - Get - item not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'ITEM_NOT_FOUND');"] } }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/items/{{missingItemId}}/bom-revisions/{{bomId}}" }
+    },
+    {
+      "name": "62 - Get - BOM revision not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'BOM_REVISION_NOT_FOUND');"] } }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{missingBomId}}" }
+    },
+    {
+      "name": "70 - Copy - invalid body",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{bomId}}/copy", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"newRevision\":\"\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null}" } }
+    },
+    {
+      "name": "71 - Copy - invalid route parameter",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 400);", "pm.variables.set('expectedError', 'VALIDATION_ERROR');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/not-a-uuid/copy", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"newRevision\":\"R2\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null}" } }
+    },
+    {
+      "name": "72 - Copy - item not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'ITEM_NOT_FOUND');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{missingItemId}}/bom-revisions/{{bomId}}/copy", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"newRevision\":\"R2\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null}" } }
+    },
+    {
+      "name": "73 - Copy - BOM revision not found",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 404);", "pm.variables.set('expectedError', 'BOM_REVISION_NOT_FOUND');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{missingBomId}}/copy", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"newRevision\":\"R2\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null}" } }
+    },
+    {
+      "name": "74 - Copy - draft is not copyable",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.variables.set('expectedStatus', 409);", "pm.variables.set('expectedError', 'BOM_REVISION_NOT_COPYABLE');"] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/items/{{parentId}}/bom-revisions/{{bomId}}/copy", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"newRevision\":\"R2\",\"effectiveFrom\":\"2026-01-01\",\"effectiveTo\":null}" } }
+    }
+  ]
+}

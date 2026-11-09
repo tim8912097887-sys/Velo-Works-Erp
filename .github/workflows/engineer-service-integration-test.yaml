@@ -1,0 +1,96 @@
+name: Engineer-Service-Integration-Test
+on:
+  pull_request:
+    branches:
+      - main
+      - feat/engineer-service
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref != 'refs/heads/main' }}
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      engineer-service: ${{ steps.filter.outputs.engineer-service }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+      - name: Check for file changes
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            engineer-service:
+              - 'services/engineer-service/**'
+              - '.github/workflows/engineer-service-integration-test.yaml'
+  test-engineer-service:
+    needs: changes
+    if: ${{ needs.changes.outputs.engineer-service == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlserver://localhost:1433;database=engineer;user=sa;password=Password123!;encrypt=true;trustServerCertificate=true
+      NODE_ENV: test
+      PORT: 3000
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: Password123!
+          ACCEPT_EULA: Y
+        ports:
+          - 1433:1433
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+      - name: Initialize Environment
+        uses: ./.github/actions/setup-node-and-dependency
+        with:
+          node-version: 22
+          pnpm-version: 10.26.1
+      - name: Wait for SQL Server
+        run: |
+          for i in {1..30}; do
+          sqlcmd \
+              -S localhost \
+              -U sa \
+              -P 'Password123!' \
+              -C \
+              -Q "SELECT 1" >/dev/null 2>&1 && break
+
+          echo "Waiting for SQL Server..."
+          sleep 2
+          done
+      - name: Generate Prisma Client
+        run: pnpm run engineer-service:db:generate
+      - name: Prisma Migration
+        run: pnpm run engineer-service:db:migrate
+      - name: Build Packages
+        run: pnpm packages:build
+      - name: Install Inner packages
+        run: pnpm services:install
+      - name: Run Integration Tests
+        run: pnpm engineer-service:test
+  engineer-service-test-status:
+    needs: [changes, test-engineer-service]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate Status
+        run: |
+          CHANGE_RESULT="${{ needs.changes.result }}"
+          BUILD_RESULT="${{ needs.test-engineer-service.result }}"
+
+          if [ "$CHANGE_RESULT" != "success" ]; then
+            echo "Change detection failed!"
+            exit 1
+          fi
+
+          if [ "$BUILD_RESULT" = "success" ] || [ "$BUILD_RESULT" = "skipped" ]; then
+            echo "Server tests passed or were safely skipped."
+            exit 0
+          else
+            echo "Server tests failed!"
+            exit 1
+          fi

@@ -6,6 +6,7 @@ import { NotFoundError } from './not-found.error.js';
 import { InternalServerError } from './server.error.js';
 import { ApiError } from './api.error.js';
 import { BomRevisionAlreadyExistsError } from '../../domains/boms/errors/bom-revision-already-exists.error.js';
+import { BomDraftAlreadyExistsError } from '../../domains/boms/errors/bom-draft-already-exists.error.js';
 import { BomRevisionNotDraftError } from '../../domains/boms/errors/bom-revision-not-draft.error.js';
 import { BomRevisionNotFoundError } from '../../domains/boms/errors/bom-revision-not-found.error.js';
 import { BomSelfReferenceError } from '../../domains/boms/errors/bom-self-reference.error.js';
@@ -20,12 +21,14 @@ import { ItemAlreadyActivateError } from '../../domains/items/errors/item-alread
 import { ItemAlreadyInActivateError } from '../../domains/items/errors/item-already-in-activate.error.js';
 import { ItemCodeAlreadyExistError } from '../../domains/items/errors/item-code-already-exist.error.js';
 import { ItemAlreadyInUseError } from '../../domains/items/errors/item-already-in-use.error.js';
+import { BomRevisionNotCopyableError } from '../../domains/boms/errors/bom-revision-not-copyable.error.js';
 
 type DomainErrorMapper = (error: DomainError) => ApiError;
 type MappedDomainErrorConstructor =
   | typeof ItemNotFoundError
   | typeof ItemAlreadyExistsError
   | typeof BomRevisionAlreadyExistsError
+  | typeof BomDraftAlreadyExistsError
   | typeof BomRevisionNotDraftError
   | typeof BomRevisionNotFoundError
   | typeof BomSelfReferenceError
@@ -38,7 +41,8 @@ type MappedDomainErrorConstructor =
   | typeof ItemAlreadyActivateError
   | typeof ItemAlreadyInActivateError
   | typeof ItemCodeAlreadyExistError
-  | typeof ItemAlreadyInUseError;
+  | typeof ItemAlreadyInUseError
+  | typeof BomRevisionNotCopyableError;
 
 const domainErrorMappers = new Map<
   MappedDomainErrorConstructor,
@@ -73,8 +77,16 @@ const domainErrorMappers = new Map<
     (error) => new ConflictApiError('BOM_REVISION_ALREADY_EXISTS', error.message),
   ],
   [
+    BomDraftAlreadyExistsError,
+    (error) => new ConflictApiError('BOM_DRAFT_ALREADY_EXISTS', error.message),
+  ],
+  [
     BomRevisionAlreadyInUseError,
     (error) => new ConflictApiError('BOM_REVISION_ALREADY_IN_USE', error.message),
+  ],
+  [
+    BomRevisionNotCopyableError,
+    (error) => new ConflictApiError('BOM_REVISION_NOT_COPYABLE', error.message),
   ],
   [
     ItemNotActiveError,

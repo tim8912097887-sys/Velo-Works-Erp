@@ -1,17 +1,17 @@
 import request from 'supertest';
-import { seedItems } from '../../utils/engineer-service/seed/item.seed.js';
+import { seedItems } from '../../utils/item-service/seed/item.seed.js';
 import { resetDb } from '../../utils/common/db-reset.js';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { getApp } from '../../setup.js';
 import { ReturnItemDto } from '../../../domains/items/dto/return-item.dto.js';
 import { Item } from '../../../generated/prisma/client.js';
-import { GET_ALL_ITEMS_URL } from '../../utils/engineer-service/seed/constants.js';
+import { GET_ALL_ITEMS_URL } from '../../utils/item-service/seed/constants.js';
 import { ItemsService } from '../../../domains/items/items.service.js';
 import { assertServerError, assertValidationError } from '../../utils/common/assertion.js';
 import {
   getAllItemsTestCases,
   getAllItemsValidationTestCases,
-} from '../../utils/engineer-service/items/test-cases/get-all.test-cases.js';
+} from '../../utils/item-service/test-cases/get-all.test-cases.js';
 
 describe('Get All Items Integration Test', () => {
   beforeAll(async () => {

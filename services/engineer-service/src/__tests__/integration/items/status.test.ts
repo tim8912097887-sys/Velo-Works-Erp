@@ -6,8 +6,8 @@ import { DbService } from '../../../infrastruture/persistence/db.service.js';
 import { getApp } from '../../setup.js';
 import { assertServerError, assertValidationError } from '../../utils/common/assertion.js';
 import { resetDb } from '../../utils/common/db-reset.js';
-import { seedItems } from '../../utils/engineer-service/seed/item.seed.js';
-import { GET_ALL_ITEMS_URL } from '../../utils/engineer-service/seed/constants.js';
+import { seedItems } from '../../utils/item-service/seed/item.seed.js';
+import { ACTIVATE_ITEM_URL, INACTIVATE_ITEM_URL } from '../../utils/item-service/seed/constants.js';
 
 describe('Item activation integration tests', () => {
   let seededItems: Item[];
@@ -34,9 +34,7 @@ describe('Item activation integration tests', () => {
   describe('Activate', () => {
     it('when activating an inactive item should return active true', async () => {
       const item = seededItems[42];
-      const response = await request(getApp().getHttpServer()).patch(
-        `${GET_ALL_ITEMS_URL}/${item.id}/activate`,
-      );
+      const response = await request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(item.id));
 
       expect(response.status).toBe(200);
       expect(response.body.state).toBe('success');
@@ -45,9 +43,7 @@ describe('Item activation integration tests', () => {
 
     it('when activating an already active item should return a conflict error', async () => {
       const item = seededItems[0];
-      const response = await request(getApp().getHttpServer()).patch(
-        `${GET_ALL_ITEMS_URL}/${item.id}/activate`,
-      );
+      const response = await request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(item.id));
 
       expect(response.status).toBe(409);
       expect(response.body.error).toEqual({
@@ -58,9 +54,7 @@ describe('Item activation integration tests', () => {
 
     it('when activating a missing item should return a not found error', async () => {
       const itemId = '00000000-0000-4000-8000-000000000000';
-      const response = await request(getApp().getHttpServer()).patch(
-        `${GET_ALL_ITEMS_URL}/${itemId}/activate`,
-      );
+      const response = await request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(itemId));
 
       expect(response.status).toBe(404);
       expect(response.body.error.code).toBe('ITEM_NOT_FOUND');
@@ -69,9 +63,7 @@ describe('Item activation integration tests', () => {
     it.each(['not-a-uuid', '123'])(
       'when activating item with malformed ID %s should return a validation error',
       async (itemId) => {
-        const response = await request(getApp().getHttpServer()).patch(
-          `${GET_ALL_ITEMS_URL}/${itemId}/activate`,
-        );
+        const response = await request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(itemId));
 
         assertValidationError(response, 'id');
       },
@@ -83,7 +75,7 @@ describe('Item activation integration tests', () => {
       );
 
       const response = await request(getApp().getHttpServer()).patch(
-        `${GET_ALL_ITEMS_URL}/${seededItems[42].id}/activate`,
+        ACTIVATE_ITEM_URL(seededItems[42].id),
       );
 
       assertServerError(response);
@@ -92,8 +84,8 @@ describe('Item activation integration tests', () => {
     it('when two requests activate the same item concurrently should activate only once', async () => {
       const item = seededItems[42];
       const responses = await Promise.all([
-        request(getApp().getHttpServer()).patch(`${GET_ALL_ITEMS_URL}/${item.id}/activate`),
-        request(getApp().getHttpServer()).patch(`${GET_ALL_ITEMS_URL}/${item.id}/activate`),
+        request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(item.id)),
+        request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(item.id)),
       ]);
 
       expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
@@ -106,9 +98,7 @@ describe('Item activation integration tests', () => {
   describe('Inactivate', () => {
     it('when inactivating an active item should return active false', async () => {
       const item = seededItems[0];
-      const response = await request(getApp().getHttpServer()).patch(
-        `${GET_ALL_ITEMS_URL}/${item.id}/inactivate`,
-      );
+      const response = await request(getApp().getHttpServer()).patch(INACTIVATE_ITEM_URL(item.id));
 
       expect(response.status).toBe(200);
       expect(response.body.state).toBe('success');
@@ -117,9 +107,7 @@ describe('Item activation integration tests', () => {
 
     it('when inactivating an already inactive item should return a conflict error', async () => {
       const item = seededItems[42];
-      const response = await request(getApp().getHttpServer()).patch(
-        `${GET_ALL_ITEMS_URL}/${item.id}/inactivate`,
-      );
+      const response = await request(getApp().getHttpServer()).patch(INACTIVATE_ITEM_URL(item.id));
 
       expect(response.status).toBe(409);
       expect(response.body.error).toEqual({
@@ -130,9 +118,7 @@ describe('Item activation integration tests', () => {
 
     it('when inactivating a missing item should return a not found error', async () => {
       const itemId = '00000000-0000-4000-8000-000000000000';
-      const response = await request(getApp().getHttpServer()).patch(
-        `${GET_ALL_ITEMS_URL}/${itemId}/inactivate`,
-      );
+      const response = await request(getApp().getHttpServer()).patch(INACTIVATE_ITEM_URL(itemId));
 
       expect(response.status).toBe(404);
       expect(response.body.error.code).toBe('ITEM_NOT_FOUND');
@@ -141,9 +127,7 @@ describe('Item activation integration tests', () => {
     it.each(['not-a-uuid', '123'])(
       'when inactivating item with malformed ID %s should return a validation error',
       async (itemId) => {
-        const response = await request(getApp().getHttpServer()).patch(
-          `${GET_ALL_ITEMS_URL}/${itemId}/inactivate`,
-        );
+        const response = await request(getApp().getHttpServer()).patch(INACTIVATE_ITEM_URL(itemId));
 
         assertValidationError(response, 'id');
       },
@@ -155,7 +139,7 @@ describe('Item activation integration tests', () => {
       );
 
       const response = await request(getApp().getHttpServer()).patch(
-        `${GET_ALL_ITEMS_URL}/${seededItems[0].id}/inactivate`,
+        INACTIVATE_ITEM_URL(seededItems[0].id),
       );
 
       assertServerError(response);
@@ -164,8 +148,8 @@ describe('Item activation integration tests', () => {
     it('when two requests inactivate the same item concurrently should inactivate only once', async () => {
       const item = seededItems[0];
       const responses = await Promise.all([
-        request(getApp().getHttpServer()).patch(`${GET_ALL_ITEMS_URL}/${item.id}/inactivate`),
-        request(getApp().getHttpServer()).patch(`${GET_ALL_ITEMS_URL}/${item.id}/inactivate`),
+        request(getApp().getHttpServer()).patch(INACTIVATE_ITEM_URL(item.id)),
+        request(getApp().getHttpServer()).patch(INACTIVATE_ITEM_URL(item.id)),
       ]);
 
       expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);

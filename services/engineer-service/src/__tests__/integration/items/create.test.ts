@@ -5,12 +5,12 @@ import { ItemsService } from '../../../domains/items/items.service.js';
 import { getApp } from '../../setup.js';
 import { assertServerError, assertValidationError } from '../../utils/common/assertion.js';
 import { resetDb } from '../../utils/common/db-reset.js';
-import { seedItems } from '../../utils/engineer-service/seed/item.seed.js';
-import { GET_ALL_ITEMS_URL } from '../../utils/engineer-service/seed/constants.js';
+import { seedItems } from '../../utils/item-service/seed/item.seed.js';
+import { CREATE_ITEM_URL } from '../../utils/item-service/seed/constants.js';
 import {
   createItemTestCases,
   createItemValidationTestCases,
-} from '../../utils/engineer-service/items/test-cases/create.test-cases.js';
+} from '../../utils/item-service/test-cases/create.test-cases.js';
 
 describe('Create Item Integration Test', () => {
   let seededItems: Item[];
@@ -22,7 +22,7 @@ describe('Create Item Integration Test', () => {
 
   describe('Success test', () => {
     it.each(createItemTestCases)('$description', async ({ body }) => {
-      const response = await request(getApp().getHttpServer()).post(GET_ALL_ITEMS_URL).send(body);
+      const response = await request(getApp().getHttpServer()).post(CREATE_ITEM_URL).send(body);
 
       expect(response.status).toBe(201);
       expect(response.body.state).toBe('success');
@@ -41,17 +41,15 @@ describe('Create Item Integration Test', () => {
 
   describe('Business Logic test', () => {
     it('when itemCode already exists should return a conflict error', async () => {
-      const response = await request(getApp().getHttpServer())
-        .post(GET_ALL_ITEMS_URL)
-        .send({
-          itemCode: seededItems[0].itemCode,
-          name: 'Duplicate item',
-          itemType: 'RAW_MATERIAL',
-          unitOfMeasure: 'PCS',
-          makeBuy: 'BUY',
-          leadTimeDays: 5,
-          safetyStock: 0,
-        });
+      const response = await request(getApp().getHttpServer()).post(CREATE_ITEM_URL).send({
+        itemCode: seededItems[0].itemCode,
+        name: 'Duplicate item',
+        itemType: 'RAW_MATERIAL',
+        unitOfMeasure: 'PCS',
+        makeBuy: 'BUY',
+        leadTimeDays: 5,
+        safetyStock: 0,
+      });
 
       expect(response.status).toBe(409);
       expect(response.body.state).toBe('error');
@@ -74,8 +72,8 @@ describe('Create Item Integration Test', () => {
       };
 
       const responses = await Promise.all([
-        request(getApp().getHttpServer()).post(GET_ALL_ITEMS_URL).send(body),
-        request(getApp().getHttpServer()).post(GET_ALL_ITEMS_URL).send(body),
+        request(getApp().getHttpServer()).post(CREATE_ITEM_URL).send(body),
+        request(getApp().getHttpServer()).post(CREATE_ITEM_URL).send(body),
       ]);
 
       expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
@@ -87,7 +85,7 @@ describe('Create Item Integration Test', () => {
 
   describe('Validation Error test', () => {
     it.each(createItemValidationTestCases)('$description', async ({ body, field }) => {
-      const response = await request(getApp().getHttpServer()).post(GET_ALL_ITEMS_URL).send(body);
+      const response = await request(getApp().getHttpServer()).post(CREATE_ITEM_URL).send(body);
 
       assertValidationError(response, field);
     });
@@ -100,7 +98,7 @@ describe('Create Item Integration Test', () => {
       );
 
       const response = await request(getApp().getHttpServer())
-        .post(GET_ALL_ITEMS_URL)
+        .post(CREATE_ITEM_URL)
         .send(createItemTestCases[0].body);
 
       assertServerError(response);
