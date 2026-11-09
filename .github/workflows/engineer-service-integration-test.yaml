@@ -66,6 +66,10 @@ jobs:
         run: pnpm run engineer-service:db:generate
       - name: Prisma Migration
         run: pnpm run engineer-service:db:migrate
+      - name: Build Packages
+        run: pnpm packages:build
+      - name: Install Inner packages
+        run: pnpm services:install
       - name: Run Integration Tests
         run: pnpm engineer-service:test
   engineer-service-test-status:
