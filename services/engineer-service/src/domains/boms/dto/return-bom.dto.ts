@@ -12,6 +12,7 @@ export class ReturnBomDto {
   readonly status: string;
   readonly effectiveFrom: string;
   readonly effectiveTo: string | null;
+  readonly version: number;
   readonly components: {
     id: string;
     componentItemId: string;
@@ -29,6 +30,7 @@ export class ReturnBomDto {
     this.status = bomHeader.status;
     this.effectiveFrom = bomHeader.effectiveFrom.toISOString().slice(0, 10);
     this.effectiveTo = bomHeader.effectiveTo?.toISOString().slice(0, 10) ?? null;
+    this.version = bomHeader.version;
     this.components = bomHeader.components.map((component) => ({
       id: component.id,
       componentItemId: component.componentItemId,

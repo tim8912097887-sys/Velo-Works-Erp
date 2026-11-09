@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../../infrastruture/persistence/db.service.js';
-import { BomHeader, Item, Prisma } from '../../generated/prisma/client.js';
+import { Item, Prisma } from '../../generated/prisma/client.js';
 import { CreateBomBody } from './dto/create-bom.dto.js';
 import { UpdateBomBody } from './dto/update-bom.dto.js';
 import { BomRevisionNotFoundError } from './errors/bom-revision-not-found.error.js';
 import { BomRevisionNotDraftError } from './errors/bom-revision-not-draft.error.js';
 import { BomRevisionAlreadyInUseError } from './errors/bom-revision-already-in-use.error.js';
 import { BomRevisionAlreadyExistsError } from './errors/bom-revision-already-exists.error.js';
+import { BomDraftAlreadyExistsError } from './errors/bom-draft-already-exists.error.js';
+import { CopyBomBody } from './dto/copy-bom.dto.js';
+import { GetBomRevisionsQuery } from './dto/get-bom-revisions-query.dto.js';
 
 const bomInclude = {
   parentItem: true,
@@ -19,6 +22,14 @@ const bomInclude = {
 
 export type BomHeaderWithRelations = Prisma.BomHeaderGetPayload<{
   include: typeof bomInclude;
+}>;
+
+const bomHeaderSummaryInclude = {
+  parentItem: true,
+} satisfies Prisma.BomHeaderInclude;
+
+export type BomHeaderWithParentItem = Prisma.BomHeaderGetPayload<{
+  include: typeof bomHeaderSummaryInclude;
 }>;
 
 @Injectable()
@@ -53,13 +64,41 @@ export class BomsRepository {
     return header !== null;
   }
 
-  async findBomHeader(itemId: string, bomHeaderId: string): Promise<BomHeader | null> {
+  async findBomHeader(itemId: string, bomHeaderId: string): Promise<BomHeaderWithRelations | null> {
     return this.dbClient.bomHeader.findFirst({
       where: {
         id: bomHeaderId,
         parentItemId: itemId,
       },
+      include: bomInclude,
     });
+  }
+
+  async findBomRevisions(
+    itemId: string,
+    query: GetBomRevisionsQuery,
+  ): Promise<{ revisions: BomHeaderWithParentItem[]; total: number }> {
+    const where: Prisma.BomHeaderWhereInput = {
+      parentItemId: itemId,
+      ...(query.status ? { status: query.status } : {}),
+    };
+    const orderBy: Prisma.BomHeaderOrderByWithRelationInput[] = [
+      { [query.sortBy]: query.sortOrder },
+      { id: 'asc' },
+    ];
+
+    const [revisions, total] = await Promise.all([
+      this.dbClient.bomHeader.findMany({
+        where,
+        skip: query.offset,
+        take: query.limit,
+        orderBy,
+        include: bomHeaderSummaryInclude,
+      }),
+      this.dbClient.bomHeader.count({ where }),
+    ]);
+
+    return { revisions, total };
   }
 
   async create(itemId: string, body: CreateBomBody): Promise<BomHeaderWithRelations> {
@@ -92,33 +131,15 @@ export class BomsRepository {
         });
       });
     } catch (error) {
-      // Capture Prisma Unique Constraint Violation (P2002)
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new BomRevisionAlreadyExistsError(itemId, body.revision);
+        await this.throwBomConflictError(itemId, body.revision, error);
       }
       throw error;
     }
   }
 
-  async update(
-    itemId: string,
-    bomHeaderId: string,
-    body: UpdateBomBody,
-  ): Promise<BomHeaderWithRelations> {
+  async update(bomHeaderId: string, body: UpdateBomBody): Promise<BomHeaderWithRelations> {
     return this.dbClient.$transaction(async (transaction) => {
-      // Fetch current header to check status and capture the current version
-      const bomHeader = await transaction.bomHeader.findFirst({
-        where: { id: bomHeaderId, parentItemId: itemId },
-        select: { status: true, version: true },
-      });
-
-      if (!bomHeader) {
-        throw new BomRevisionNotFoundError(bomHeaderId);
-      }
-      if (bomHeader.status !== 'DRAFT') {
-        throw new BomRevisionNotDraftError(bomHeaderId);
-      }
-
       // Replace components for this draft revision
       await transaction.bomComponent.deleteMany({
         where: { bomHeaderId },
@@ -134,28 +155,117 @@ export class BomsRepository {
         })),
       });
 
-      try {
-        // Perform update with optimistic lock (version checking & incrementing)
-        return await transaction.bomHeader.update({
+      // Perform update with optimistic lock (version checking & incrementing)
+      const result = await transaction.bomHeader.updateMany({
+        where: {
+          id: bomHeaderId,
+          version: body.version, // Ensures no concurrent modifications happened
+          status: 'DRAFT',
+        },
+        data: {
+          effectiveFrom: this.toDatabaseDate(body.effectiveFrom),
+          effectiveTo: body.effectiveTo ? this.toDatabaseDate(body.effectiveTo) : null,
+          version: { increment: 1 }, // Atomically bump version
+        },
+      });
+
+      if (result.count === 0) {
+        const currentItem = await transaction.bomHeader.findUnique({
           where: {
             id: bomHeaderId,
-            version: bomHeader.version, // Ensures no concurrent modifications happened
           },
-          data: {
-            effectiveFrom: this.toDatabaseDate(body.effectiveFrom),
-            effectiveTo: body.effectiveTo ? this.toDatabaseDate(body.effectiveTo) : null,
-            version: { increment: 1 }, // Atomically bump version
-          },
-          include: bomInclude,
         });
-      } catch (error) {
-        // If P2025 occurs, the record wasn't found because version changed concurrently
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+
+        if (!currentItem) {
+          throw new BomRevisionNotFoundError(bomHeaderId);
+        }
+
+        if (currentItem.status !== 'DRAFT') {
+          throw new BomRevisionNotDraftError(bomHeaderId);
+        }
+
+        if (currentItem.version !== body.version) {
           throw new BomRevisionAlreadyInUseError(bomHeaderId);
         }
-        throw error;
       }
+
+      return transaction.bomHeader.findUniqueOrThrow({
+        where: {
+          id: bomHeaderId,
+        },
+        include: bomInclude,
+      });
     });
+  }
+
+  async copy(source: BomHeaderWithRelations, body: CopyBomBody): Promise<BomHeaderWithRelations> {
+    try {
+      return await this.dbClient.$transaction(async (transaction) => {
+        const bomHeader = await transaction.bomHeader.create({
+          data: {
+            parentItemId: source.parentItemId,
+            revision: body.newRevision,
+            status: 'DRAFT',
+            effectiveFrom: this.toDatabaseDate(body.effectiveFrom),
+            effectiveTo: body.effectiveTo ? this.toDatabaseDate(body.effectiveTo) : null,
+            version: 1,
+          },
+        });
+
+        await transaction.bomComponent.createMany({
+          data: source.components.map((component) => ({
+            bomHeaderId: bomHeader.id,
+            componentItemId: component.componentItemId,
+            componentRevision: component.componentRevision,
+            quantityPer: component.quantityPer,
+            scrapRate: component.scrapRate,
+            operationSeq: component.operationSeq,
+          })),
+        });
+
+        return transaction.bomHeader.findUniqueOrThrow({
+          where: { id: bomHeader.id },
+          include: bomInclude,
+        });
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        await this.throwBomConflictError(source.parentItemId, body.newRevision, error);
+      }
+
+      throw error;
+    }
+  }
+
+  private async throwBomConflictError(
+    itemId: string,
+    revision: string,
+    error: Prisma.PrismaClientKnownRequestError,
+  ): Promise<never> {
+    const existingRevision = await this.dbClient.bomHeader.findUnique({
+      where: {
+        parentItemId_revision: {
+          parentItemId: itemId,
+          revision,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (existingRevision) {
+      throw new BomRevisionAlreadyExistsError(itemId, revision);
+    }
+
+    const existingDraft = await this.dbClient.bomHeader.findFirst({
+      where: { parentItemId: itemId, status: 'DRAFT' },
+      select: { id: true },
+    });
+
+    if (existingDraft) {
+      throw new BomDraftAlreadyExistsError(itemId);
+    }
+
+    throw error;
   }
 
   private toDatabaseDate(value: string): Date {
