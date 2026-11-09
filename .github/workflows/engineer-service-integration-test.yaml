@@ -13,7 +13,7 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      enigneer-service: ${{ steps.filter.outputs.enigneer-service }}
+      engineer-service: ${{ steps.filter.outputs.engineer-service }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -22,12 +22,12 @@ jobs:
         uses: dorny/paths-filter@v4
         with:
           filters: |
-            enigneer-service:
+            engineer-service:
               - 'services/engineer-service/**'
               - '.github/workflows/engineer-service-integration-test.yaml'
   test-engineer-service:
     needs: changes
-    if: ${{ needs.changes.outputs.enigneer-service == 'true' }}
+    if: ${{ needs.changes.outputs.engineer-service == 'true' }}
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: sqlserver://localhost:1433;database=engineer;user=sa;password=password;encrypt=true;trustServerCertificate=true
@@ -42,16 +42,6 @@ jobs:
         ports:
           - 1433:1433
     steps:
-      - name: Create Engineer Database
-        run: |
-          docker run --rm \
-          --network host \
-          mcr.microsoft.com/mssql-tools \
-          sqlcmd \
-          -S localhost \
-          -U sa \
-          -P password \
-          -Q "CREATE DATABASE engineer"
       - name: Checkout Repository
         uses: actions/checkout@v6
       - name: Initialize Environment
@@ -59,6 +49,22 @@ jobs:
         with:
           node-version: 22
           pnpm-version: 10.26.1
+      - name: Wait for SQL Server
+        run: |
+          for i in {1..30}; do
+          docker run --rm \
+              --network host \
+              mcr.microsoft.com/mssql-tools \
+              /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost \
+              -U sa \
+              -P password \
+              -C \
+              -Q "SELECT 1" && break
+
+          echo "Waiting for SQL Server..."
+          sleep 5
+          done
       - name: Generate Prisma Client
         run: pnpm run engineer-service:db:generate
       - name: Prisma Migration
