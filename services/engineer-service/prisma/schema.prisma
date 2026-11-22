@@ -105,6 +105,7 @@ model BomComponent {
 
   componentItem   Item @relation("ComponentItem", fields: [componentItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@unique([bomHeaderId, componentItemId])
   @@index([bomHeaderId])
   @@index([componentItemId])
   @@map("bom_components")

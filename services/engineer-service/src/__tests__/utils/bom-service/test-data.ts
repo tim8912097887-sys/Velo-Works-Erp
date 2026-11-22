@@ -4,6 +4,10 @@ const ITEMS_URL = '/api/v1/items';
 export const getBomRevisionsUrl = (itemId: string) => `${ITEMS_URL}/${itemId}/bom-revisions`;
 export const getBomRevisionUrl = (itemId: string, bomHeaderId: string) =>
   `${getBomRevisionsUrl(itemId)}/${bomHeaderId}`;
+export const getBomExplosionUrl = (itemId: string, bomHeaderId: string) =>
+  `${getBomRevisionUrl(itemId, bomHeaderId)}/explode`;
+export const activateBomRevisionUrl = (itemId: string, bomHeaderId: string) =>
+  `${getBomRevisionUrl(itemId, bomHeaderId)}/activate`;
 export const copyBomRevisionUrl = (itemId: string, bomHeaderId: string) =>
   `${getBomRevisionUrl(itemId, bomHeaderId)}/copy`;
 
@@ -11,14 +15,14 @@ export const createBomBody = {
   revision: 'R1',
   effectiveFrom: '2026-01-01',
   effectiveTo: null,
-  components: [{ componentItemId: bomTestComponentId, quantityPer: 1 }],
+  components: [{ componentItemId: bomTestComponentId, componentRevision: null, quantityPer: 1 }],
 };
 
 export const updateBomBody = {
   version: 1,
   effectiveFrom: '2026-01-01',
   effectiveTo: null,
-  components: [{ componentItemId: bomTestComponentId, quantityPer: 1 }],
+  components: [{ componentItemId: bomTestComponentId, componentRevision: null, quantityPer: 1 }],
 };
 
 export const copyBomBody = {

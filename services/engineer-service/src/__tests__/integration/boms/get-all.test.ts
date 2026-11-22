@@ -11,21 +11,21 @@ import { DbService } from '../../../infrastruture/persistence/db.service.js';
 import { getBomRevisionsUrl } from '../../utils/bom-service/test-data.js';
 import { getBomRevisionsValidationTestCases } from '../../utils/bom-service/test-cases/get-all.test-cases.js';
 
-describe('Get All BOM Revisions Integration Test', () => {
+describe('GET /api/v1/items/:itemId/bom-revisions', () => {
   let seededItems: Item[];
 
   beforeAll(async () => {
     await resetDb();
     seededItems = (await seedItems()) as unknown as Item[];
-    await seedBomHeaders(seededItems[1].id, 2);
-    await seedBomHeader(seededItems[1].id, new Date('2026-01-01T00:00:00.000Z'), null, 'DRAFT');
-    await seedBomHeader(seededItems[1].id, new Date('2026-01-01T00:00:00.000Z'), null, 'ACTIVE');
+    await seedBomHeaders(seededItems[2].id, 2);
+    await seedBomHeader(seededItems[2].id, new Date('2026-01-01T00:00:00.000Z'), null, 'DRAFT');
+    await seedBomHeader(seededItems[2].id, new Date('2026-01-01T00:00:00.000Z'), null, 'ACTIVE');
   });
 
-  describe('Success test', () => {
+  describe('success', () => {
     it('when BOM revisions exist should return the matching revisions and pagination', async () => {
       const response = await request(getApp().getHttpServer()).get(
-        getBomRevisionsUrl(seededItems[1].id),
+        getBomRevisionsUrl(seededItems[2].id),
       );
 
       expect(response.status).toBe(200);
@@ -41,7 +41,7 @@ describe('Get All BOM Revisions Integration Test', () => {
       expect(
         response.body.data.every(
           (revision: { parentItem: { id: string } }) =>
-            revision.parentItem.id === seededItems[1].id,
+            revision.parentItem.id === seededItems[2].id,
         ),
       ).toBe(true);
     });
@@ -76,7 +76,7 @@ describe('Get All BOM Revisions Integration Test', () => {
         const revisions = await getApp()
           .get(DbService)
           .bomHeader.findMany({
-            where: { parentItemId: seededItems[1].id },
+            where: { parentItemId: seededItems[2].id },
           });
         const expected = revisions
           .filter((revision) => revision.status === query.status)
@@ -94,7 +94,7 @@ describe('Get All BOM Revisions Integration Test', () => {
           });
         const queryString = new URLSearchParams(query);
         const response = await request(getApp().getHttpServer()).get(
-          `${getBomRevisionsUrl(seededItems[1].id)}?${queryString.toString()}`,
+          `${getBomRevisionsUrl(seededItems[2].id)}?${queryString.toString()}`,
         );
 
         expect(response.status).toBe(200);
@@ -111,18 +111,7 @@ describe('Get All BOM Revisions Integration Test', () => {
     );
   });
 
-  describe('Business Logic test', () => {
-    it('when parent item does not exist should return a not found error', async () => {
-      const response = await request(getApp().getHttpServer()).get(
-        getBomRevisionsUrl('00000000-0000-4000-8000-000000000088'),
-      );
-
-      expect(response.status).toBe(404);
-      expect(response.body.error.code).toBe('ITEM_NOT_FOUND');
-    });
-  });
-
-  describe('Validation Error test', () => {
+  describe('validation', () => {
     it.each(getBomRevisionsValidationTestCases)(
       '$description',
       async ({ itemId, query, field }) => {
@@ -136,14 +125,25 @@ describe('Get All BOM Revisions Integration Test', () => {
     );
   });
 
-  describe('Server Error test', () => {
+  describe('business logic', () => {
+    it('when parent item does not exist should return a not found error', async () => {
+      const response = await request(getApp().getHttpServer()).get(
+        getBomRevisionsUrl('00000000-0000-4000-8000-000000000088'),
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.code).toBe('ITEM_NOT_FOUND');
+    });
+  });
+
+  describe('server error', () => {
     it('when the service throws an unexpected error should return a masked server error', async () => {
       const findRevisions = vi
         .spyOn(getApp().get(BomsService), 'findRevisions')
         .mockRejectedValue(new Error('Unexpected database failure'));
 
       const response = await request(getApp().getHttpServer()).get(
-        getBomRevisionsUrl(seededItems[1].id),
+        getBomRevisionsUrl(seededItems[2].id),
       );
 
       assertServerError(response);

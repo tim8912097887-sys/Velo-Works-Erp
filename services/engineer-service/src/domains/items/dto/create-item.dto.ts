@@ -14,14 +14,18 @@ export const CreateItemSchema = z
   .strict() // Rejects unexpected/unsupported fields
   .refine(
     (data) => {
-      // Rule: RAW_MATERIAL only allows BUY; SUBASSEMBLY and FINISHED_GOOD allow MAKE, BUY, BOTH
+      if (data.itemType === 'FINISHED_GOOD') {
+        return data.makeBuy !== 'BUY';
+      }
+
       if (data.itemType === 'RAW_MATERIAL') {
         return data.makeBuy === 'BUY';
       }
+
       return true;
     },
     {
-      message: 'RAW_MATERIAL must have makeBuy set to BUY',
+      message: 'Invalid makeBuy value for itemType',
       path: ['makeBuy'],
     },
   );

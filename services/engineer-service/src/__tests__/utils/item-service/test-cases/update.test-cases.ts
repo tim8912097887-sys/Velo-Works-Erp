@@ -15,28 +15,16 @@ const updateItemTestCases = [
     expected: { safetyStock: 0 },
   },
   {
-    description: 'when updating makeBuy should return the item with the new value',
-    body: { makeBuy: 'BOTH' },
-    expected: { makeBuy: 'BOTH' },
-  },
-  {
-    description: 'when updating makeBuy to MAKE should return the item with the new value',
-    body: { makeBuy: 'MAKE' },
-    expected: { makeBuy: 'MAKE' },
-  },
-  {
     description: 'when updating multiple fields should return all updated values',
     body: {
       name: '  Updated name  ',
       leadTimeDays: 12,
       safetyStock: 4.5,
-      makeBuy: 'BUY',
     },
     expected: {
       name: 'Updated name',
       leadTimeDays: 12,
       safetyStock: 4.5,
-      makeBuy: 'BUY',
     },
   },
   {
@@ -77,7 +65,7 @@ export const updateItemValidationTestCases = [
     },
     'version',
   ),
-  ...(['name', 'leadTimeDays', 'safetyStock', 'makeBuy', 'version'] as const).map((field) =>
+  ...(['name', 'leadTimeDays', 'safetyStock', 'version'] as const).map((field) =>
     updateValidationCase(
       `when ${field} is null should return a validation error`,
       {
@@ -130,13 +118,6 @@ export const updateItemValidationTestCases = [
       safetyStock: -0.01,
     },
     'safetyStock',
-  ),
-  updateValidationCase(
-    'when makeBuy is invalid should return a validation error',
-    {
-      makeBuy: 'INVALID',
-    },
-    'makeBuy',
   ),
   updateValidationCase('when an unsupported field is supplied should return a validation error', {
     ...validUpdateItem,

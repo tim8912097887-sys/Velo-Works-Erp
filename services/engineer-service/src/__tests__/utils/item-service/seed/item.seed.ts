@@ -11,7 +11,7 @@ export async function seedItems() {
   const makeBuysMap = {
     RAW_MATERIAL: ['BUY'],
     SUBASSEMBLY: ['MAKE', 'BUY', 'BOTH'],
-    FINISHED_GOOD: ['MAKE', 'BUY', 'BOTH'],
+    FINISHED_GOOD: ['MAKE', 'BOTH'],
   } as const;
 
   const units = ['PCS', 'KG', 'MTRS', 'LTRS', 'BOX'];

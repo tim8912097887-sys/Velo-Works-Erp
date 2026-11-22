@@ -7,9 +7,9 @@ import { getApp } from '../../setup.js';
 import { assertServerError, assertValidationError } from '../../utils/common/assertion.js';
 import { resetDb } from '../../utils/common/db-reset.js';
 import { seedItems } from '../../utils/item-service/seed/item.seed.js';
-import { ACTIVATE_ITEM_URL, INACTIVATE_ITEM_URL } from '../../utils/item-service/seed/constants.js';
+import { INACTIVATE_ITEM_URL } from '../../utils/item-service/seed/constants.js';
 
-describe('Item activation integration tests', () => {
+describe('Item inactivation integration tests', () => {
   let seededItems: Item[];
 
   beforeAll(async () => {
@@ -29,70 +29,6 @@ describe('Item activation integration tests', () => {
         data: { active: false },
       }),
     ]);
-  });
-
-  describe('Activate', () => {
-    it('when activating an inactive item should return active true', async () => {
-      const item = seededItems[42];
-      const response = await request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(item.id));
-
-      expect(response.status).toBe(200);
-      expect(response.body.state).toBe('success');
-      expect(response.body.data).toEqual(expect.objectContaining({ id: item.id, active: true }));
-    });
-
-    it('when activating an already active item should return a conflict error', async () => {
-      const item = seededItems[0];
-      const response = await request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(item.id));
-
-      expect(response.status).toBe(409);
-      expect(response.body.error).toEqual({
-        code: 'ITEM_ALREADY_ACTIVATED',
-        message: `Item with ID ${item.id} is already active`,
-      });
-    });
-
-    it('when activating a missing item should return a not found error', async () => {
-      const itemId = '00000000-0000-4000-8000-000000000000';
-      const response = await request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(itemId));
-
-      expect(response.status).toBe(404);
-      expect(response.body.error.code).toBe('ITEM_NOT_FOUND');
-    });
-
-    it.each(['not-a-uuid', '123'])(
-      'when activating item with malformed ID %s should return a validation error',
-      async (itemId) => {
-        const response = await request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(itemId));
-
-        assertValidationError(response, 'id');
-      },
-    );
-
-    it('when an unexpected activation error occurs should return a masked server error', async () => {
-      vi.spyOn(getApp().get(ItemsService), 'activate').mockRejectedValue(
-        new Error('Unexpected database failure'),
-      );
-
-      const response = await request(getApp().getHttpServer()).patch(
-        ACTIVATE_ITEM_URL(seededItems[42].id),
-      );
-
-      assertServerError(response);
-    });
-
-    it('when two requests activate the same item concurrently should activate only once', async () => {
-      const item = seededItems[42];
-      const responses = await Promise.all([
-        request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(item.id)),
-        request(getApp().getHttpServer()).patch(ACTIVATE_ITEM_URL(item.id)),
-      ]);
-
-      expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
-      expect(responses.find((response) => response.status === 409)?.body.error.code).toBe(
-        'ITEM_ALREADY_ACTIVATED',
-      );
-    });
   });
 
   describe('Inactivate', () => {

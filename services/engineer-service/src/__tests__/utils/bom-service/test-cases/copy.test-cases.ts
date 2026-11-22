@@ -30,4 +30,18 @@ export const copyBomValidationTestCases: CopyBomValidationTestCase[] = [
     body: { ...copyBomBody, newRevision: '' },
     field: 'newRevision',
   },
+  {
+    description: 'when effectiveFrom is not a calendar date should return a validation error',
+    itemId: '00000000-0000-4000-8000-000000000001',
+    bomHeaderId: '00000000-0000-4000-8000-000000000002',
+    body: { ...copyBomBody, effectiveFrom: '2026-02-30' },
+    field: 'effectiveFrom',
+  },
+  {
+    description: 'when effectiveTo is before effectiveFrom should return a validation error',
+    itemId: '00000000-0000-4000-8000-000000000001',
+    bomHeaderId: '00000000-0000-4000-8000-000000000002',
+    body: { ...copyBomBody, effectiveFrom: '2026-01-10', effectiveTo: '2026-01-09' },
+    field: 'effectiveTo',
+  },
 ];
