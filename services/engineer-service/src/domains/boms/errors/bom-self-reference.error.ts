@@ -1,7 +1,10 @@
 import { DomainError } from '../../../shared/errors/domain.error.js';
 
 export class BomSelfReferenceError extends DomainError {
-  constructor(itemId: string) {
-    super(`Item ${itemId} cannot be a component of its own BOM revision`);
+  constructor(parentItemId: string) {
+    super(`Item ${parentItemId} cannot reference itself as a BOM component.`, {
+      parentItemId,
+      componentItemId: parentItemId,
+    });
   }
 }

@@ -5,10 +5,9 @@ import { GetItemsQueryDto } from './dto/get-all.dto.js';
 import { UpdateItemDto } from './dto/update-item.dto.js';
 import { Item, Prisma } from '../../generated/prisma/client.js';
 import { ItemCodeAlreadyExistError } from './errors/item-code-already-exist.error.js';
-import { ItemAlreadyInUseError } from './errors/item-already-in-use.error.js';
+import { ItemVersionConflictError } from './errors/item-version-conflict.error.js';
 import { ItemNotFoundError } from './errors/item-not-found.error.js';
-import { ItemAlreadyActivateError } from './errors/item-already-activate.error.js';
-import { ItemAlreadyInActivateError } from './errors/item-already-in-activate.error.js';
+import { ItemAlreadyInactivatedError } from './errors/item-already-in-activated.error.js';
 import { ItemNotActiveError } from './errors/item-not-active.error.js';
 
 @Injectable()
@@ -107,7 +106,7 @@ export class ItemsRepository {
           throw new ItemNotActiveError(id);
         }
 
-        throw new ItemAlreadyInUseError(id);
+        throw new ItemVersionConflictError(id);
       }
 
       return transaction.item.findUniqueOrThrow({
@@ -116,29 +115,28 @@ export class ItemsRepository {
     });
   }
 
-  async updateActiveState(id: string, active: boolean): Promise<Item> {
+  async inactivate(id: string): Promise<Item> {
     return this.dbClient.$transaction(async (transaction) => {
       const lockedItems = await transaction.$queryRaw<{ id: string; active: boolean }[]>`
-        SELECT [id], [active]
-        FROM [items] WITH (UPDLOCK, ROWLOCK)
-        WHERE [id] = ${id}
-      `;
+      SELECT [id], [active]
+      FROM [items] WITH (UPDLOCK, ROWLOCK)
+      WHERE [id] = ${id}
+    `;
+
       const item = lockedItems[0];
 
       if (!item) {
         throw new ItemNotFoundError(id);
       }
-      if (item.active === active) {
-        if (active) {
-          throw new ItemAlreadyActivateError(id);
-        }
-        throw new ItemAlreadyInActivateError(id);
+
+      if (!item.active) {
+        throw new ItemAlreadyInactivatedError(id);
       }
 
       return transaction.item.update({
         where: { id },
         data: {
-          active,
+          active: false,
           version: { increment: 1 },
         },
       });

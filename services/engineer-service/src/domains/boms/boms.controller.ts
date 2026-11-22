@@ -21,6 +21,12 @@ import {
   getBomRevisionsQuerySchema,
 } from './dto/get-bom-revisions-query.dto.js';
 import { type CopyBomBody, copyBomBodySchema } from './dto/copy-bom.dto.js';
+import { explodeBomParamsSchema } from './dto/explode-bom-params.dto.js';
+import {
+  type GetBomExplosionQuery,
+  getBomExplosionQuerySchema,
+} from './dto/get-bom-explosion-query.dto.js';
+import { activateBomParamsSchema } from './dto/activate-bom-params.dto.js';
 
 @Controller('/api/v1/items')
 export class BomsController {
@@ -82,6 +88,37 @@ export class BomsController {
     @Body(new ZodValidationPipe(updateBomBodySchema)) body: UpdateBomBody,
   ) {
     const data = await this.bomsService.update(params.itemId, params.bomHeaderId, body);
+    return successResponse(data);
+  }
+
+  @Get(':itemId/bom-revisions/:bomHeaderId/explode')
+  async explodeRevision(
+    @Param(new ZodValidationPipe(explodeBomParamsSchema))
+    params: {
+      itemId: string;
+      bomHeaderId: string;
+    },
+    @Query(new ZodValidationPipe(getBomExplosionQuerySchema)) query: GetBomExplosionQuery,
+  ) {
+    const data = await this.bomsService.explodeRevision(
+      params.itemId,
+      params.bomHeaderId,
+      query.rootQuantity,
+    );
+    return successResponse(data);
+  }
+
+  @Post(':itemId/bom-revisions/:bomHeaderId/activate')
+  @HttpCode(HttpStatus.OK)
+  async activateBom(
+    @Param(new ZodValidationPipe(activateBomParamsSchema))
+    params: {
+      itemId: string;
+      bomHeaderId: string;
+    },
+  ) {
+    const data = await this.bomsService.activateBom(params.itemId, params.bomHeaderId);
+
     return successResponse(data);
   }
 }

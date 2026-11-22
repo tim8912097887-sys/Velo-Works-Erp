@@ -30,6 +30,7 @@ export const effectiveDateSchema = z
   });
 
 export const bomComponentSchema = z.strictObject({
+  componentRevision: revisionSchema.nullable().default(null),
   componentItemId: uuidSchema,
   quantityPer: z.number().positive(),
   scrapRate: z.number().min(0).lt(1).default(0),

@@ -94,7 +94,7 @@ describe('Update Item Integration Test', () => {
 
       expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
       expect(responses.find((response) => response.status === 409)?.body.error.code).toBe(
-        'ITEM_ALREADY_IN_USE',
+        'ITEM_VERSION_CONFLICT',
       );
       const persistedItem = await getPersistedItem(item.id);
       expect(persistedItem?.version).toBe(item.version + 1);
@@ -107,7 +107,7 @@ describe('Update Item Integration Test', () => {
           .send({ name: 'Stale update must not persist', version: item.version }),
       );
       expect(failedUpdateResponse.status).toBe(409);
-      expect(failedUpdateResponse.body.error.code).toBe('ITEM_ALREADY_IN_USE');
+      expect(failedUpdateResponse.body.error.code).toBe('ITEM_VERSION_CONFLICT');
     });
 
     it('when item is inactive should reject the update', async () => {

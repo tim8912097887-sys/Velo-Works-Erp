@@ -16,6 +16,7 @@ export class ReturnBomDto {
   readonly components: {
     id: string;
     componentItemId: string;
+    componentRevision: string | null;
     componentItem: Pick<Item, 'id' | 'itemCode' | 'name' | 'itemType'>;
     quantityPer: number;
     scrapRate: number;
@@ -34,6 +35,7 @@ export class ReturnBomDto {
     this.components = bomHeader.components.map((component) => ({
       id: component.id,
       componentItemId: component.componentItemId,
+      componentRevision: component.componentRevision,
       componentItem: this.toItem(component.componentItem),
       quantityPer: Number(component.quantityPer),
       scrapRate: Number(component.scrapRate),

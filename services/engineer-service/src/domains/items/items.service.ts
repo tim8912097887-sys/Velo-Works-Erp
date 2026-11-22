@@ -34,11 +34,7 @@ export class ItemsService {
     return ReturnItemDto.toDomainItem(updatedItem);
   }
 
-  async activate(id: string): Promise<ReturnItemDto> {
-    return ReturnItemDto.toDomainItem(await this.itemRepository.updateActiveState(id, true));
-  }
-
   async inactivate(id: string): Promise<ReturnItemDto> {
-    return ReturnItemDto.toDomainItem(await this.itemRepository.updateActiveState(id, false));
+    return ReturnItemDto.toDomainItem(await this.itemRepository.inactivate(id));
   }
 }

@@ -106,6 +106,11 @@ export const createItemValidationTestCases = [
     ...validCreateItem,
     makeBuy: 'INVALID',
   }, 'makeBuy'),
+  createValidationCase('when FINISHED_GOOD is BUY should return a validation error', {
+    ...validCreateItem,
+    itemType: 'FINISHED_GOOD',
+    makeBuy: 'BUY',
+  }, 'makeBuy'),
   createValidationCase('when RAW_MATERIAL is not BUY should return a validation error', {
     ...validCreateItem,
     itemType: 'RAW_MATERIAL',

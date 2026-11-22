@@ -1,9 +1,8 @@
 import request from 'supertest';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { Item } from '../../../generated/prisma/client.js';
-import { BomsService } from '../../../domains/boms/boms.service.js';
 import { BomsRepository } from '../../../domains/boms/boms.repository.js';
-import { BomRevisionNotFoundError } from '../../../domains/boms/errors/bom-revision-not-found.error.js';
+import { DbService } from '../../../infrastruture/persistence/db.service.js';
 import { getApp } from '../../setup.js';
 import { assertServerError, assertValidationError } from '../../utils/common/assertion.js';
 import { resetDb } from '../../utils/common/db-reset.js';
@@ -13,7 +12,7 @@ import { assertBomDataUnchanged, getBomData } from '../../utils/bom-service/asse
 import { getBomRevisionUrl, updateBomBody } from '../../utils/bom-service/test-data.js';
 import { updateBomValidationTestCases } from '../../utils/bom-service/test-cases/update.test-cases.js';
 
-describe('Update BOM Revision Integration Test', () => {
+describe('PUT /api/v1/items/:itemId/bom-revisions/:bomHeaderId', () => {
   let seededItems: Item[];
 
   beforeAll(async () => {
@@ -21,9 +20,16 @@ describe('Update BOM Revision Integration Test', () => {
     seededItems = (await seedItems()) as unknown as Item[];
   });
 
-  describe('Success test', () => {
+  describe('success', () => {
     it('when a draft BOM revision is updated should return the new version and components', async () => {
-      const parent = seededItems[1];
+      const parent = seededItems[2];
+      const component = seededItems[1];
+      const componentBom = await seedBomHeader(
+        component.id,
+        new Date('2026-01-01T00:00:00.000Z'),
+        null,
+        'ACTIVE',
+      );
       const header = await seedBomHeader(
         parent.id,
         new Date('2026-01-01T00:00:00.000Z'),
@@ -34,7 +40,13 @@ describe('Update BOM Revision Integration Test', () => {
         .put(getBomRevisionUrl(parent.id, header.id))
         .send({
           ...updateBomBody,
-          components: [{ componentItemId: seededItems[0].id, quantityPer: 3 }],
+          components: [
+            {
+              componentItemId: component.id,
+              componentRevision: componentBom.revision,
+              quantityPer: 3,
+            },
+          ],
         });
 
       expect(response.status).toBe(200);
@@ -46,14 +58,46 @@ describe('Update BOM Revision Integration Test', () => {
           version: 2,
           status: 'DRAFT',
           components: [
-            expect.objectContaining({ componentItemId: seededItems[0].id, quantityPer: 3 }),
+            expect.objectContaining({
+              componentItemId: component.id,
+              componentRevision: componentBom.revision,
+              quantityPer: 3,
+            }),
           ],
         }),
       );
+      const persistedBom = await getApp()
+        .get(BomsRepository)
+        .findBomHeader(parent.id, header.id);
+      expect(persistedBom).toMatchObject({
+        id: header.id,
+        version: 2,
+        status: 'DRAFT',
+        components: [
+          expect.objectContaining({
+            componentItemId: component.id,
+            componentRevision: componentBom.revision,
+          }),
+        ],
+      });
+      expect(persistedBom?.components[0].quantityPer.toNumber()).toBe(3);
     });
   });
 
-  describe('Business Logic test', () => {
+  describe('validation', () => {
+    it.each(updateBomValidationTestCases)(
+      '$description',
+      async ({ itemId, bomHeaderId, body, field }) => {
+        const response = await assertBomDataUnchanged(() =>
+          request(getApp().getHttpServer()).put(getBomRevisionUrl(itemId, bomHeaderId)).send(body),
+        );
+
+        assertValidationError(response, field);
+      },
+    );
+  });
+
+  describe('business logic', () => {
     it('when parent item does not exist should return a not found error', async () => {
       const response = await assertBomDataUnchanged(() =>
         request(getApp().getHttpServer())
@@ -95,8 +139,11 @@ describe('Update BOM Revision Integration Test', () => {
     it('when BOM revision does not exist should return a not found error', async () => {
       const response = await assertBomDataUnchanged(() =>
         request(getApp().getHttpServer())
-          .put(getBomRevisionUrl(seededItems[1].id, '00000000-0000-4000-8000-000000000088'))
-          .send(updateBomBody),
+          .put(getBomRevisionUrl(seededItems[2].id, '00000000-0000-4000-8000-000000000088'))
+          .send({
+            ...updateBomBody,
+            components: [{ componentItemId: seededItems[0].id, quantityPer: 1 }],
+          }),
       );
 
       expect(response.status).toBe(404);
@@ -104,7 +151,7 @@ describe('Update BOM Revision Integration Test', () => {
     });
 
     it('when BOM revision is not a draft should return a conflict error', async () => {
-      const parent = seededItems[2];
+      const parent = seededItems[5];
       const header = await seedBomHeader(
         parent.id,
         new Date('2026-01-01T00:00:00.000Z'),
@@ -114,7 +161,10 @@ describe('Update BOM Revision Integration Test', () => {
       const response = await assertBomDataUnchanged(() =>
         request(getApp().getHttpServer())
           .put(getBomRevisionUrl(parent.id, header.id))
-          .send(updateBomBody),
+          .send({
+            ...updateBomBody,
+            components: [{ componentItemId: seededItems[0].id, quantityPer: 1 }],
+          }),
       );
 
       expect(response.status).toBe(409);
@@ -122,7 +172,7 @@ describe('Update BOM Revision Integration Test', () => {
     });
 
     it('when the submitted version is stale should return a conflict error', async () => {
-      const parent = seededItems[4];
+      const parent = seededItems[8];
       const header = await seedBomHeader(
         parent.id,
         new Date('2026-01-01T00:00:00.000Z'),
@@ -141,11 +191,100 @@ describe('Update BOM Revision Integration Test', () => {
       );
 
       expect(response.status).toBe(409);
-      expect(response.body.error.code).toBe('BOM_REVISION_ALREADY_IN_USE');
+      expect(response.body.error.code).toBe('BOM_REVISION_VERSION_CONFLICT');
     });
 
+    it('when a component item does not exist should return a not found error', async () => {
+      const parent = seededItems[14];
+      const header = await seedBomHeader(
+        parent.id,
+        new Date('2026-01-01T00:00:00.000Z'),
+        null,
+        'DRAFT',
+      );
+      const response = await assertBomDataUnchanged(() =>
+        request(getApp().getHttpServer())
+          .put(getBomRevisionUrl(parent.id, header.id))
+          .send({
+            ...updateBomBody,
+            components: [
+              { componentItemId: '00000000-0000-4000-8000-000000000088', quantityPer: 1 },
+            ],
+          }),
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.code).toBe('COMPONENT_ITEM_NOT_FOUND');
+    });
+
+    it('when a component references the parent item should return a bad request error', async () => {
+      const parent = seededItems[17];
+      const header = await seedBomHeader(
+        parent.id,
+        new Date('2026-01-01T00:00:00.000Z'),
+        null,
+        'DRAFT',
+      );
+      const response = await assertBomDataUnchanged(() =>
+        request(getApp().getHttpServer())
+          .put(getBomRevisionUrl(parent.id, header.id))
+          .send({
+            ...updateBomBody,
+            components: [{ componentItemId: parent.id, quantityPer: 1 }],
+          }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('BOM_SELF_REFERENCE');
+    });
+
+    it('when a component item is inactive should return a bad request error', async () => {
+      const parent = seededItems[20];
+      const header = await seedBomHeader(
+        parent.id,
+        new Date('2026-01-01T00:00:00.000Z'),
+        null,
+        'DRAFT',
+      );
+      const response = await assertBomDataUnchanged(() =>
+        request(getApp().getHttpServer())
+          .put(getBomRevisionUrl(parent.id, header.id))
+          .send({
+            ...updateBomBody,
+            components: [{ componentItemId: seededItems[42].id, quantityPer: 1 }],
+          }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('COMPONENT_ITEM_INACTIVE');
+    });
+
+    it('when a component is a finished good should return a bad request error', async () => {
+      const parent = seededItems[23];
+      const header = await seedBomHeader(
+        parent.id,
+        new Date('2026-01-01T00:00:00.000Z'),
+        null,
+        'DRAFT',
+      );
+      const response = await assertBomDataUnchanged(() =>
+        request(getApp().getHttpServer())
+          .put(getBomRevisionUrl(parent.id, header.id))
+          .send({
+            ...updateBomBody,
+            components: [{ componentItemId: seededItems[2].id, quantityPer: 1 }],
+          }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('BOM_COMPONENT_ITEM_TYPE_NOT_ALLOWED');
+    });
+
+  });
+
+  describe('concurrency', () => {
     it('when concurrent updates use the same version should reject the stale update without applying its changes', async () => {
-      const parent = seededItems[7];
+      const parent = seededItems[11];
       const header = await seedBomHeader(
         parent.id,
         new Date('2026-01-01T00:00:00.000Z'),
@@ -170,7 +309,7 @@ describe('Update BOM Revision Integration Test', () => {
 
       expect(responses.map(({ status }) => status).sort()).toEqual([200, 409]);
       expect(responses.find(({ status }) => status === 409)?.body.error.code).toBe(
-        'BOM_REVISION_ALREADY_IN_USE',
+        'BOM_REVISION_VERSION_CONFLICT',
       );
       const successfulResponse = responses.find(({ status }) => status === 200);
       const persistedHeader = await getApp()
@@ -190,53 +329,37 @@ describe('Update BOM Revision Integration Test', () => {
         });
 
       expect(staleResponse.status).toBe(409);
-      expect(staleResponse.body.error.code).toBe('BOM_REVISION_ALREADY_IN_USE');
+      expect(staleResponse.body.error.code).toBe('BOM_REVISION_VERSION_CONFLICT');
       expect(await getBomData()).toEqual(snapshotAfterSuccess);
     });
   });
 
-  describe('Repository Error test', () => {
-    it('when a revision is missing during repository update should throw a not found error', async () => {
-      const bomsRepository = getApp().get(BomsRepository);
-      const before = await getBomData();
-
-      await expect(
-        bomsRepository.update('00000000-0000-4000-8000-000000000088', {
-          ...updateBomBody,
-          components: [],
-        }),
-      ).rejects.toBeInstanceOf(BomRevisionNotFoundError);
-      expect(await getBomData()).toEqual(before);
-    });
-  });
-
-  describe('Validation Error test', () => {
-    it.each(updateBomValidationTestCases)(
-      '$description',
-      async ({ itemId, bomHeaderId, body, field }) => {
-        const response = await assertBomDataUnchanged(() =>
-          request(getApp().getHttpServer()).put(getBomRevisionUrl(itemId, bomHeaderId)).send(body),
-        );
-
-        assertValidationError(response, field);
-      },
-    );
-  });
-
-  describe('Server Error test', () => {
-    it('when the service throws an unexpected error should return a masked server error', async () => {
-      const update = vi
-        .spyOn(getApp().get(BomsService), 'update')
-        .mockRejectedValue(new Error('Unexpected database failure'));
+  describe('server error', () => {
+    it('when the transaction throws unexpectedly should roll back and return a masked server error', async () => {
+      const parent = seededItems[38];
+      const header = await seedBomHeader(
+        parent.id,
+        new Date('2026-01-01T00:00:00.000Z'),
+        null,
+        'DRAFT',
+      );
+      await seedBomComponent(header.id, seededItems[0].id);
+      const db = getApp().get(DbService);
+      const transaction = vi
+        .spyOn(db, '$transaction')
+        .mockRejectedValue(new Error('Unexpected transaction failure'));
 
       const response = await assertBomDataUnchanged(() =>
         request(getApp().getHttpServer())
-          .put(getBomRevisionUrl(seededItems[5].id, '00000000-0000-4000-8000-000000000002'))
-          .send(updateBomBody),
+          .put(getBomRevisionUrl(parent.id, header.id))
+          .send({
+            ...updateBomBody,
+            components: [{ componentItemId: seededItems[0].id, quantityPer: 2 }],
+          }),
       );
 
       assertServerError(response);
-      expect(update).toHaveBeenCalled();
+      expect(transaction).toHaveBeenCalled();
     });
   });
 });
